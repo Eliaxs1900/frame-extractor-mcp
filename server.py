@@ -2,7 +2,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["mcp>=1.2,<2", "av>=13", "pillow>=10"]
 # ///
-"""video-mcp: MCP server that lets an assistant *see* a video without ffmpeg.
+"""frame-extractor-mcp: MCP server that lets an assistant *see* a video without ffmpeg.
 
 Tools
   video_info           duration, fps, frame count, size, codec, rotation
@@ -42,7 +42,7 @@ import av
 from mcp.server.fastmcp import FastMCP
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageStat
 
-mcp = FastMCP("video")
+mcp = FastMCP("frame-extractor")
 
 
 # ----------------------------------------------------------------------------- helpers
