@@ -4,6 +4,10 @@ Servidor **MCP** (Model Context Protocol) que deja a un asistente como Claude **
 
 Va en un único archivo, [`server.py`](server.py). Se ejecuta con [`uv`](https://docs.astral.sh/uv/), que instala las dependencias solo. **No hace falta ffmpeg**: decodifica con [PyAV](https://pyav.org), que ya trae las librerías de FFmpeg.
 
+![Hoja de contactos de ejemplo](docs/ejemplo_hoja.jpg)
+
+*Hoja de contactos generada con `video_contact_sheet` (12 fotogramas, los más nítidos de cada tramo) a partir del clip de 10 s de* Big Buck Bunny *([test-videos.co.uk](https://test-videos.co.uk/bigbuckbunny/mp4-h264)). Big Buck Bunny: © 2008 Blender Foundation, [peach.blender.org](https://peach.blender.org), licencia [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
 ---
 
 ## Por qué existe
@@ -61,18 +65,18 @@ Añade esto a la configuración de servidores MCP (en Claude Desktop, `claude_de
 
 ## Uso de ejemplo
 
-> «Mira `~/Movies/IMG_4349.mov` y dime cómo es la peana de la TV.»
+> «Mira `~/Movies/mi_video.mov` y dime cómo es la peana de la TV.»
 
 El asistente llama primero a esta herramienta:
 
 ```json
-video_contact_sheet({"video_path": "~/Movies/IMG_4349.mov", "out_png": "/tmp/hoja.jpg", "count": 20})
+video_contact_sheet({"video_path": "~/Movies/mi_video.mov", "out_png": "/tmp/hoja.jpg", "count": 20})
 ```
 
 Después abre `/tmp/hoja.jpg` y, si necesita detalle, llama a esta otra:
 
 ```json
-video_frames({"video_path": "~/Movies/IMG_4349.mov", "out_dir": "/tmp/frames", "frames": [197, 557]})
+video_frames({"video_path": "~/Movies/mi_video.mov", "out_dir": "/tmp/frames", "frames": [197, 557]})
 ```
 
 ## Probar sin cliente MCP
@@ -93,6 +97,13 @@ print(m.video_contact_sheet('mi_video.mov', 'hoja.jpg'))"
 - **Memoria:** solo guarda en memoria el mejor fotograma de cada tramo, no el vídeo completo.
 - **Problema conocido:** si ejecutas el servidor desde una carpeta que tenga archivos con nombres de módulos estándar de Python (`inspect.py`, `json.py`…), la importación de PyAV puede fallar o incluso cerrar el proceso. Ejecútalo con la ruta absoluta de `server.py`, como en los ejemplos.
 
+## Reproducir la imagen de ejemplo
+
+```bash
+curl -LO https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4
+```
+Después pide `video_contact_sheet` con `count: 12`, `columns: 4` y `thumb_width: 400`.
+
 ## Licencia
 
-[MIT](LICENSE)
+Código: [MIT](LICENSE). La imagen de ejemplo (`docs/ejemplo_hoja.jpg`) se deriva de *Big Buck Bunny* (© Blender Foundation, CC BY 3.0).
