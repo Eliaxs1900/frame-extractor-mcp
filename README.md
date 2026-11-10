@@ -20,7 +20,54 @@ La misma hoja sin etiquetas (`label: false`, o las dos a la vez con `both_versio
 
 ![Hoja de contactos sin etiquetas](docs/ejemplo_hoja_sin_labels.jpg)
 
+Con una plantilla de etiqueta propia (`step_pct: 25`, `label_template: "{index}. {pct}% · fotograma {frame}/{frames_total} · {time_hms} {anchor}"`):
+
+![Hoja de contactos con plantilla de etiqueta](docs/ejemplo_plantilla.jpg)
+
 <sub>*Big Buck Bunny* © 2008 Blender Foundation, [peach.blender.org](https://peach.blender.org), licencia [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Archivo `bbb_sunflower_1080p_30fps_normal.mp4` de [download.blender.org/demo/movies/BBB](https://download.blender.org/demo/movies/BBB/). El primer y el último fotograma de la película son negros.</sub>
+
+---
+
+## Cómo se usa (en 3 pasos)
+
+Un **MCP** es un conjunto de herramientas que se conecta a un asistente (Claude Code, Claude Desktop u otro cliente compatible). Una vez instalado **no lo ejecutas tú**: le pides al asistente lo que quieres, en lenguaje normal, y él decide qué herramienta llamar y con qué parámetros.
+
+**1. Instala `uv`** (una sola vez). Es lo que arranca el servidor y le instala sus dependencias:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh        # macOS / Linux
+# Windows (PowerShell): powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**2. Descarga el servidor y conéctalo a tu asistente:**
+```bash
+git clone https://github.com/Eliaxs1900/video-mcp.git
+claude mcp add --scope user video -- uv run --script "$PWD/video-mcp/server.py"
+```
+Con `claude mcp list` deberías ver `video: … ✔ Connected`. Para Claude Desktop y otros clientes, mira [Instalación](#instalación).
+
+**3. Pídeselo al asistente**, indicando la ruta del vídeo:
+
+> «Mira `~/Movies/viaje.mp4` y hazme una hoja con un fotograma cada 10 %, con índice, porcentaje y número de fotograma.»
+
+El asistente:
+1. llama a `video_info` para conocer la duración y los fotogramas;
+2. llama a `video_contact_sheet` con `step_pct: 10` y `label_fields: ["index", "pct", "frame"]`;
+3. abre la imagen generada y te describe lo que ve. Si necesitas más detalle, llama a `video_frames` para sacar fotogramas concretos a tamaño completo.
+
+Otras peticiones que entiende:
+
+| Le dices | Lo que hace |
+|---|---|
+| «Resume este vídeo del móvil, que no salgan fotos movidas» | 20 fotogramas, el más nítido de cada tramo, y descarta el 30 % más borroso (`min_sharpness_pct: 30`) |
+| «Uno cada 30 segundos, sin etiquetas y con un poco de separación» | `step_s: 30`, `label: false`, `gap_px: 8` |
+| «Solo del minuto 2 al 3, sin fotogramas repetidos» | `start_s: 120`, `end_s: 180`, `min_difference: 6` |
+| «Hazme las dos versiones, con y sin etiquetas» | `both_versions: true` → `<nombre>_labels.jpg` y `<nombre>_sin_labels.jpg` |
+| «Dame el primer, el del medio y el último fotograma en grande» | `video_frames` con `positions_pct: [0, 50, 100]` |
+| «El fotograma del minuto 5, el más nítido de alrededor» | `video_frames` con `times_s: [300]`, `sharpest_within_s: 0.5` |
+
+Las imágenes se guardan donde diga el asistente (o donde tú le indiques). La respuesta JSON de cada herramienta trae las rutas exactas y los datos de cada fotograma: número, tiempo, %, nitidez.
+
+> **Sin asistente:** también puedes llamar a las funciones desde Python. Mira [Probar sin cliente MCP](#probar-sin-cliente-mcp).
 
 ---
 
