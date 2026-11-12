@@ -12,7 +12,7 @@ Servidor **MCP** (Model Context Protocol) que deja a un asistente como Claude **
 
 ### Ejemplo: un fotograma cada 10 % de la película (`step_pct: 10`)
 
-El servidor calcula las 11 posiciones (0 %, 10 %… 100 %) con la duración. El 0 % es exactamente el **primer fotograma** (#0, 0,0 s) y el 100 % el **último** (#19035 de 19036, 634,5 s). Etiquetas: índice, % y nº de fotograma (`label_fields: ["index", "pct", "frame", "anchor"]`).
+Arriba, los datos del vídeo; abajo, lo que muestra la hoja (las mismas cifras que devuelve el JSON). El servidor calcula las 11 posiciones (0 %, 10 %… 100 %) con la duración. El 0 % es exactamente el **primer fotograma** (#0, 0,0 s) y el 100 % el **último** (#19035 de 19036, 634,5 s). Etiquetas: índice, % y nº de fotograma (`label_fields: ["index", "pct", "frame", "anchor"]`).
 
 ![Hoja de contactos con etiquetas](docs/ejemplo_hoja_labels.jpg)
 
@@ -62,6 +62,7 @@ Otras peticiones que entiende:
 | «Uno cada 30 segundos, sin etiquetas y con un poco de separación» | `step_s: 30`, `label: false`, `gap_px: 8` |
 | «Solo del minuto 2 al 3, sin fotogramas repetidos» | `start_s: 120`, `end_s: 180`, `min_difference: 6` |
 | «Hazme las dos versiones, con y sin etiquetas» | `both_versions: true` → `<nombre>_labels.jpg` y `<nombre>_sin_labels.jpg` |
+| «Solo las imágenes, sin la cabecera ni el pie de datos» | `header: false`, `footer: false` |
 | «Dame el primer, el del medio y el último fotograma en grande» | `video_frames` con `positions_pct: [0, 50, 100]` |
 | «El fotograma del minuto 5, el más nítido de alrededor» | `video_frames` con `times_s: [300]`, `sharpest_within_s: 0.5` |
 
@@ -126,7 +127,10 @@ Genera una cuadrícula con fotogramas del vídeo. Tiene **tres formas de elegir*
 | | `thumb_width` | 480 | Ancho de cada miniatura, en px |
 | | `gap_px` | 0 | Espacio entre miniaturas y alrededor, en px |
 | | `background` | `#141414` | Color del fondo y del espacio entre miniaturas |
-| | `jpeg_quality` | 90 | Calidad si `out_png` termina en `.jpg` |
+| | `jpeg_quality` | 90 | Calidad si `out_png` termina en `.jpg` (con `.png` se guarda sin pérdida) |
+| | `header` | `true` | Cabecera con los datos del vídeo: archivo, tamaño, fps, duración, nº de fotogramas y códec |
+| | `footer` | `true` | Pie con lo que muestra la hoja: fotogramas, modo, rango, fotogramas medidos, nitidez mín/mediana/máx, descartados y umbral |
+| | `sharpen` | 0.5 | Enfoque tras reducir cada fotograma a miniatura (0 = sin enfoque, 1 = fuerte): las miniaturas no quedan blandas |
 | Etiquetas | `label` | `true` | Con o sin etiqueta en cada miniatura |
 | | `label_fields` | `["frame","time","sharpness","anchor"]` | Campos y orden: `index` (1., 2., 3.… posición en la hoja), `frame` (#123, nº de fotograma), `time` (63.5s), `pct` (10%), `sharpness` (valor), `sharpness_pct` (% respecto al más nítido elegido), `anchor` (*primer/último fotograma*) |
 | | `label_template` | – | Texto libre en vez de `label_fields`, p. ej. `"{index}. {pct}% · fotograma {frame}/{frames_total} · {time_hms}"`. Variables: `{index}` `{frame}` `{frames_total}` `{time}` `{time_hms}` `{pct}` `{pct1}` `{sharpness}` `{sharpness_pct}` `{anchor}` |

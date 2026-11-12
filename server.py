@@ -229,6 +229,9 @@ def video_contact_sheet(
     label_template: str | None = None,
     label_size: int | None = None,
     both_versions: bool = False,
+    header: bool = True,
+    footer: bool = True,
+    sharpen: float = 0.5,
     analysis_width: int = 480,
     jpeg_quality: int = 90,
     save_frames_dir: str | None = None,
@@ -266,7 +269,16 @@ def video_contact_sheet(
 
     Layout
       columns, thumb_width (px), gap_px (space between and around tiles, px),
-      background (#rrggbb), jpeg_quality (when out_png ends in .jpg).
+      background (#rrggbb), jpeg_quality (when out_png ends in .jpg; a .png
+      out_png is written lossless).
+      header        band on top with the video: file, size, fps, duration,
+                    frames, codec. Default True.
+      footer        band at the bottom with what the sheet shows: frames shown,
+                    range, frames measured, sharpness min/median/max, dropped
+                    frames and the threshold used. Default True.
+      sharpen       unsharp-mask strength after downscaling each frame to its
+                    tile (0 = off, 0.5 default, 1 = strong); keeps thumbnails
+                    crisp instead of soft.
 
     Labels
       label         True/False: draw the label bar on each tile.
@@ -360,9 +372,10 @@ def video_contact_sheet(
                  **({"anchor": anchors[i]} if i in anchors else {})} for i, t, sc, _ in order]
     for k, r in enumerate(rows_out, 1):
         r["index"] = k
+    how = "posiciones exactas" if exact else ("más nítido por tramo" if mode == "sharpest" else "repartidos")
     return _sheet(order, full, rows_out, (fields, label_template), out_png, both_versions, label, columns,
                   thumb_width, gap_px, background, label_size, jpeg_quality, dropped, t0, t1, dur, meta, thr,
-                  save_frames_dir, info)
+                  save_frames_dir, info, (header, footer, sharpen, how))
 
 
 def _select(video_path, t0, t1, fields, mode, count, interval_s, interval_pct, min_sharpness, min_sharpness_pct,
@@ -432,9 +445,16 @@ def _select(video_path, t0, t1, fields, mode, count, interval_s, interval_pct, m
     return kept, dropped, thr, meta, full
 
 
+def _hms(t: float) -> str:
+    return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:04.1f}"
+
+
 def _sheet(order, full, rows_out, fields, out_png, both_versions, label, columns, thumb_width, gap_px,
-           background, label_size, jpeg_quality, dropped, t0, t1, dur, meta, thr, save_frames_dir, info) -> str:
+           background, label_size, jpeg_quality, dropped, t0, t1, dur, meta, thr, save_frames_dir, info,
+           extras=(True, True, 0.5, "")) -> str:
     fields, template = fields
+    header, footer, sharpen, how = extras
+    sh = [m[2] for m in meta if m[2]]
     anchor_txt = {"first_frame": "primer fotograma", "last_frame": "último fotograma"}
 
     def text_for(r):
@@ -463,7 +483,10 @@ def _sheet(order, full, rows_out, fields, out_png, both_versions, label, columns
         for j, ((i, *_), r) in enumerate(zip(order, rows_out)):
             x = gap_px + (j % cols) * (tw + gap_px)
             y = gap_px + (j // cols) * (th + gap_px)
-            sheet.paste(full[i].resize((tw, th), Image.LANCZOS), (x, y))
+            thumb = full[i].resize((tw, th), Image.LANCZOS)
+            if sharpen > 0 and tw < full[i].width:          # downscaling softens: restore edge contrast
+                thumb = thumb.filter(ImageFilter.UnsharpMask(radius=1.0, percent=int(120 * sharpen), threshold=2))
+            sheet.paste(thumb, (x, y))
             if with_labels:
                 txt, ff, size = text_for(r), f, fs
                 while dr.textlength(txt, font=ff) > tw - 12 and size > max(9, fs * 0.6):   # shrink to fit the tile
@@ -472,7 +495,49 @@ def _sheet(order, full, rows_out, fields, out_png, both_versions, label, columns
                     txt = txt[:-2] + "…"
                 dr.rectangle((x, y, x + tw, y + fs + 10), fill=(0, 0, 0))
                 dr.text((x + 6, y + 4 + (fs - size) // 2), txt, font=ff, fill=(255, 220, 0))
-        return sheet
+        return frame_with_data(sheet)
+
+    def frame_with_data(sheet: Image.Image) -> Image.Image:
+        # The data the JSON already returns, on the image itself: the video on
+        # top, what this sheet shows at the bottom.
+        if not (header or footer):
+            return sheet
+        size = max(14, sheet.width // 70)
+        big, small = _font(round(size * 1.25)), _font(size)
+        pad, line = max(8, size // 2), round(size * 1.5)
+        top_lines = []
+        if header:
+            w, h = info.get("displayed_size") or info.get("size") or [0, 0]
+            parts = [f"{w}×{h}"] if w else []
+            if info.get("fps"): parts.append(f"{info['fps']:.3g} fps")
+            if dur: parts.append(_hms(dur))
+            if info.get("frames"): parts.append(f"{info['frames']:,} fotogramas".replace(",", "."))
+            if info.get("codec"): parts.append(info["codec"])
+            top_lines = [(Path(info.get("file", "")).name, big), (" · ".join(parts), small)]
+        bottom = []
+        if footer:
+            txt = [f"{len(rows_out)} fotogramas ({how})" if how else f"{len(rows_out)} fotogramas",
+                   f"rango {_hms(t0)}–{_hms(t1)}" + (f" ({100 * t0 / dur:.0f}–{100 * t1 / dur:.0f} %)" if dur else ""),
+                   f"medidos {len(meta):,}".replace(",", ".")]
+            if sh:
+                txt.append(f"nitidez mín {min(sh):.0f} · mediana {_percentile(sh, 50):.0f} · máx {max(sh):.0f}")
+            if dropped: txt.append(f"descartados {len(dropped)}")
+            if thr > 0: txt.append(f"umbral {thr:.0f}")
+            bottom = [(" · ".join(txt), small)]
+        head_h = (pad + round(size * 1.25) + pad // 2 + line + pad) if top_lines else 0
+        foot_h = (pad + line + pad) if bottom else 0
+        out = Image.new("RGB", (sheet.width, sheet.height + head_h + foot_h), _rgb(background))
+        out.paste(sheet, (0, head_h))
+        d = ImageDraw.Draw(out)
+        y = pad
+        for k, (text, font) in enumerate(top_lines):
+            d.text((pad + gap_px, y), text, font=font, fill=(245, 245, 245) if k == 0 else (190, 190, 190))
+            y += round(size * 1.25) + pad // 2 if k == 0 else line
+        for text, font in bottom:
+            while d.textlength(text, font=font) > sheet.width - 2 * pad and " · " in text:   # too long: drop from the end
+                text = text.rsplit(" · ", 1)[0]
+            d.text((pad + gap_px, head_h + sheet.height + pad), text, font=font, fill=(190, 190, 190))
+        return out
 
     out = Path(out_png).expanduser()
     written = {}
@@ -483,7 +548,6 @@ def _sheet(order, full, rows_out, fields, out_png, both_versions, label, columns
     else:
         _save(build(label), out, jpeg_quality); written["con_labels" if label else "sin_labels"] = str(out)
 
-    sh = [m[2] for m in meta if m[2]]
     return json.dumps({
         "images": written,
         "frames": rows_out,
