@@ -6,7 +6,7 @@ Servidor **MCP** (Model Context Protocol) que deja a un asistente como Claude **
 - tomarlos en **posiciones exactas**, en segundos o en **porcentaje** de la duración. El servidor calcula esas posiciones a partir de la duración del vídeo.
 
 - Va en un único archivo, [`server.py`](server.py). Se ejecuta con [`uv`](https://docs.astral.sh/uv/), que instala las dependencias solo.
-- **No hace falta ffmpeg**: decodifica con [PyAV](https://pyav.org), que ya trae las librerías de FFmpeg.
+- **No hace falta ffmpeg**: decodifica con [PyAV](https://pyav.org), que ya trae las librerías de FFmpeg. Para lo demás (por ejemplo, montar un vídeo con imágenes) el repositorio trae su propio [`bin/ffmpeg`](#ffmpeg-incluido-binffmpeg), compilado del código oficial.
 - **Es rápido con películas largas**: en el modo de posiciones salta directamente a cada punto sin decodificar todo. Una hoja de 11 fotogramas de una película de 10,5 min en 1080p tarda unos 2,5 s.
 - Licencia **MIT**.
 
@@ -218,6 +218,22 @@ print(m.video_contact_sheet('mi_video.mp4', 'hoja.jpg', step_pct=10))"
 - **Etiquetas largas:** si el texto no cabe en la miniatura, la letra se reduce y, si aun así no cabe, se corta con «…». Nunca invade la miniatura de al lado.
 - **Problema conocido:** si ejecutas el servidor desde una carpeta con archivos que se llamen como módulos estándar de Python (`inspect.py`, `json.py`…), la importación de PyAV puede fallar o cerrar el proceso. Usa la ruta absoluta de `server.py`, como en los ejemplos.
 
+## ffmpeg incluido (`bin/ffmpeg`)
+
+El repositorio trae una copia de la herramienta `ffmpeg`, para que no tengas que instalarla: un ejecutable para Mac con Apple Silicon (macOS 13 o posterior) que solo usa librerías del propio macOS.
+
+- **De dónde sale:** compilado sin cambios del código oficial de FFmpeg ([github.com/FFmpeg/FFmpeg](https://github.com/FFmpeg/FFmpeg), versión `n9.0.2`) con [`build-ffmpeg.sh`](build-ffmpeg.sh). La versión, el commit, las opciones de compilación y el SHA-256 están en [`bin/LICENSE-ffmpeg.md`](bin/LICENSE-ffmpeg.md).
+- **Licencia:** LGPL 2.1 o posterior (sin partes GPL ni «nonfree»), texto en [`bin/COPYING.LGPLv2.1`](bin/COPYING.LGPLv2.1).
+- **¿Es la última versión?** El flag `--is-ffmpeg-updated` lo compara con la última versión publicada en el GitHub oficial (una sola consulta a la API de GitHub; usa `GITHUB_TOKEN` si está definido):
+
+```bash
+uv run --script server.py --is-ffmpeg-updated
+# bin/ffmpeg está al día: es n9.0.2, la última versión publicada en github.com/FFmpeg/FFmpeg.
+```
+
+- **Código de salida del flag:** `0` al día, `1` hay una versión más nueva (y dice cómo actualizar), `2` no se pudo comprobar (sin red, o `bin/ffmpeg` no se puede ejecutar).
+- **Actualizarlo:** `./build-ffmpeg.sh <etiqueta>`, por ejemplo `./build-ffmpeg.sh n9.0.3`. Después, actualiza `bin/LICENSE-ffmpeg.md`.
+
 ## Licencia
 
-Código: [MIT](LICENSE). Las imágenes de ejemplo de `docs/` salen de *Big Buck Bunny* (© Blender Foundation, CC BY 3.0).
+Código: [MIT](LICENSE). `bin/ffmpeg` es FFmpeg, bajo LGPL 2.1 o posterior ([detalles](bin/LICENSE-ffmpeg.md)). Las imágenes de ejemplo de `docs/` salen de *Big Buck Bunny* (© Blender Foundation, CC BY 3.0).

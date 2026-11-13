@@ -31,11 +31,21 @@ positions_pct); the sharpness threshold exists as an absolute value
 
 Decoding uses PyAV (bundled FFmpeg libraries). iPhone videos carry a rotation in
 their metadata; frames are rotated to look the way they were filmed.
+
+bin/ffmpeg is a copy of the FFmpeg command line tool for anything PyAV is not
+the right fit for, built from the official sources by build-ffmpeg.sh (LGPL, see
+bin/LICENSE-ffmpeg.md). `server.py --is-ffmpeg-updated` tells whether it is the
+newest FFmpeg release on the official GitHub repository (github.com/FFmpeg/FFmpeg).
 """
 from __future__ import annotations
 
 import json
 import math
+import os
+import re
+import subprocess
+import sys
+import urllib.request
 from pathlib import Path
 
 import av
@@ -612,5 +622,69 @@ def video_frames(video_path: str, out_dir: str, frames: list[int] | None = None,
     return json.dumps({"saved": saved}, indent=1)
 
 
+# ----------------------------------------------------------------------------- bundled ffmpeg
+FFMPEG = Path(__file__).resolve().parent / "bin" / "ffmpeg"
+FFMPEG_REPO = "FFmpeg/FFmpeg"  # official GitHub mirror of git.ffmpeg.org
+
+
+def _version_key(tag: str) -> tuple[int, ...]:
+    return tuple(int(x) for x in tag.lstrip("n").split("."))
+
+
+def _bundled_ffmpeg_tag() -> str:
+    """Release tag of bin/ffmpeg ("n9.0.2"), as `ffmpeg -version` reports it."""
+    out = subprocess.run([str(FFMPEG), "-hide_banner", "-version"], capture_output=True,
+                         text=True, timeout=30, check=True).stdout
+    m = re.match(r"ffmpeg version (n?\d+(?:\.\d+)+)\b", out)
+    if not m:
+        first = out.splitlines()[0] if out else ""
+        raise ValueError(f"`ffmpeg -version` no dice una versión publicada: {first!r}")
+    v = m.group(1)
+    return v if v.startswith("n") else "n" + v
+
+
+def _latest_ffmpeg_tag() -> str:
+    """Newest release tag on the official GitHub repository: nX.Y or nX.Y.Z, -dev tags left out.
+
+    One request lists every tag starting with "n", so the check costs one of the 60
+    requests an hour GitHub allows without a token (GITHUB_TOKEN is used if set)."""
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{FFMPEG_REPO}/git/matching-refs/tags/n",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "frame-extractor-mcp"})
+    if os.environ.get("GITHUB_TOKEN"):
+        req.add_header("Authorization", f"Bearer {os.environ['GITHUB_TOKEN']}")
+    with urllib.request.urlopen(req, timeout=30) as r:
+        refs = json.load(r)
+    tags = [ref["ref"].rsplit("/", 1)[-1] for ref in refs]
+    releases = [t for t in tags if re.fullmatch(r"n\d+\.\d+(?:\.\d+)?", t)]
+    if not releases:
+        raise ValueError("el repositorio no tiene etiquetas de versión publicadas")
+    return max(releases, key=_version_key)
+
+
+def is_ffmpeg_updated() -> int:
+    """--is-ffmpeg-updated: 0 when bin/ffmpeg is the newest FFmpeg release on the official
+    GitHub repository, 1 when there is a newer one, 2 when it cannot be told."""
+    try:
+        have = _bundled_ffmpeg_tag()
+    except (OSError, subprocess.SubprocessError, ValueError) as e:
+        print(f"No se puede ejecutar {FFMPEG}: {e}", file=sys.stderr)
+        return 2
+    try:
+        latest = _latest_ffmpeg_tag()
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"No se pudo consultar github.com/{FFMPEG_REPO}: {e}", file=sys.stderr)
+        return 2
+    if _version_key(have) >= _version_key(latest):
+        print(f"bin/ffmpeg está al día: es {have}, la última versión publicada en "
+              f"github.com/{FFMPEG_REPO}.")
+        return 0
+    print(f"Hay una versión más nueva: bin/ffmpeg es {have} y la última publicada en "
+          f"github.com/{FFMPEG_REPO} es {latest}.\nPara actualizarlo: ./build-ffmpeg.sh {latest}")
+    return 1
+
+
 if __name__ == "__main__":
+    if "--is-ffmpeg-updated" in sys.argv[1:]:
+        sys.exit(is_ffmpeg_updated())
     mcp.run()
