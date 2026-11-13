@@ -43,6 +43,7 @@ import json
 import math
 import os
 import re
+import struct
 import subprocess
 import sys
 import urllib.request
@@ -59,16 +60,31 @@ mcp = FastMCP("storyboard")
 def _open(path: str):
     p = Path(path).expanduser()
     if not p.exists():
-        raise FileNotFoundError(p)
+        raise FileNotFoundError(f"video not found: {p} (give an absolute path)")
     c = av.open(str(p))
+    if not c.streams.video:
+        c.close()
+        raise ValueError(f"no video stream in {p}")
     return c, c.streams.video[0]
 
 
 def _rotation(st) -> int:
+    """Clockwise degrees to turn the decoded pictures so they look the way they were
+    filmed. Phones film sideways and store that turn in the file, as a display matrix
+    (current FFmpeg) or as an old "rotate" tag."""
     try:
         r = st.metadata.get("rotate") if st.metadata else None
         if r:
             return int(r) % 360
+    except Exception:
+        pass
+    try:  # display matrix (PyAV >= 14): int32 3x3 matrix in 16.16 fixed point, read like
+        # FFmpeg's av_display_rotation_get(), which gives the counter-clockwise angle
+        m = (st.codec_context.coded_side_data or {}).get("display_matrix")
+        if m and len(m) >= 20:
+            a, b, _, c, d = (v / 65536 for v in struct.unpack("=5i", m[:20]))
+            ccw = -math.degrees(math.atan2(b / (math.hypot(b, d) or 1), a / (math.hypot(a, c) or 1)))
+            return round(-ccw) % 360
     except Exception:
         pass
     for sd in getattr(st, "side_data", []) or []:  # display matrix (newer PyAV)
@@ -325,7 +341,6 @@ def video_contact_sheet(
     t0, t1 = _range(dur, start_s, end_s, start_pct, end_pct)
 
     exact = bool(step_pct or step_s or positions_pct or positions_s)
-    anchors: dict[int, str] = {}
     if exact:
         targets: list[float] = []
         if step_pct and step_pct > 0:
@@ -347,12 +362,10 @@ def video_contact_sheet(
                 for i, t, fr, rot in _decode(video_path):
                     im = _to_image(fr, rot)
                     best = (0, 0, 0.0, _sharpness(im, analysis_width), im); break
-                anchors[0] = "first_frame"
             elif tg >= last_t - 0.5 / fps and sharpest_within_s <= 0:   # 100 % -> the last frame, exactly
                 for i, t, fr, rot in _around(video_path, last_t, 1.0 / fps):
                     im = _to_image(fr, rot)
                     best = (0, max(0, n_frames - 1), last_t, _sharpness(im, analysis_width), im)
-                anchors[max(0, n_frames - 1)] = "last_frame"
             for i, t, fr, rot in ([] if best else _around(video_path, tg, sharpest_within_s)):
                 im = _to_image(fr, rot)
                 sc = _sharpness(im, analysis_width)
@@ -379,7 +392,7 @@ def video_contact_sheet(
     span = ((info["frames"] - 1) / info["fps"]) if info["frames"] and info["fps"] else dur   # 0 % = first frame, 100 % = last
     rows_out = [{"frame": i, "time_s": round(t, 2), "pct": round(min(100.0, 100 * t / span), 1) if span else None,
                  "sharpness": round(sc, 1), "sharpness_pct": round(100 * sc / top),
-                 **({"anchor": anchors[i]} if i in anchors else {})} for i, t, sc, _ in order]
+                 **_anchor(i, info["frames"])} for i, t, sc, _ in order]
     for k, r in enumerate(rows_out, 1):
         r["index"] = k
     how = "posiciones exactas" if exact else ("más nítido por tramo" if mode == "sharpest" else "repartidos")
@@ -453,6 +466,15 @@ def _select(video_path, t0, t1, fields, mode, count, interval_s, interval_pct, m
         if i >= last:
             break
     return kept, dropped, thr, meta, full
+
+
+def _anchor(i: int, frames: int | None) -> dict:
+    """{"anchor": ...} on the first and the last frame of the video, {} on any other."""
+    if i == 0:
+        return {"anchor": "first_frame"}
+    if frames and i == frames - 1:
+        return {"anchor": "last_frame"}
+    return {}
 
 
 def _hms(t: float) -> str:
@@ -588,6 +610,7 @@ def video_frames(video_path: str, out_dir: str, frames: list[int] | None = None,
     fps = info["fps"] or 30.0
     dur = info["duration_s"] or 0.0
     n = info["frames"] or 10**9
+    span = (n - 1) / fps if n < 10**9 else dur        # 0 % = first frame, 100 % = last, as in video_contact_sheet
     req = set(frames or []) | {round(t * fps) for t in (times_s or [])} \
         | {round((n - 1) * p / 100) if n < 10**9 else round(dur * p / 100 * fps) for p in (positions_pct or [])}
     req = sorted(min(max(0, r), n - 1) for r in req)
@@ -617,7 +640,7 @@ def video_frames(video_path: str, out_dir: str, frames: list[int] | None = None,
             p = d / f"f{i:05d}.jpg"
             _save(im, p, jpeg_quality)
             saved.append({"requested": r, "frame": i, "time_s": round(t, 2),
-                          "pct": round(100 * t / dur, 1) if dur else None,
+                          "pct": round(min(100.0, 100 * t / span), 1) if span else None,
                           "sharpness": round(sc, 1), "path": str(p)})
     return json.dumps({"saved": saved}, indent=1)
 
