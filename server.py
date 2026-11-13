@@ -2,7 +2,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["mcp>=1.2,<2", "av>=13", "pillow>=10"]
 # ///
-"""frame-extractor-mcp: MCP server that lets an assistant *see* a video without ffmpeg.
+"""storyboard-mcp: MCP server that lets an assistant *see* a video without ffmpeg.
 
 Tools
   video_info           duration, fps, frame count, size, codec, rotation
@@ -52,7 +52,7 @@ import av
 from mcp.server.fastmcp import FastMCP
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageStat
 
-mcp = FastMCP("frame-extractor")
+mcp = FastMCP("storyboard")
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -650,7 +650,7 @@ def _latest_ffmpeg_tag() -> str:
     requests an hour GitHub allows without a token (GITHUB_TOKEN is used if set)."""
     req = urllib.request.Request(
         f"https://api.github.com/repos/{FFMPEG_REPO}/git/matching-refs/tags/n",
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "frame-extractor-mcp"})
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "storyboard-mcp"})
     if os.environ.get("GITHUB_TOKEN"):
         req.add_header("Authorization", f"Bearer {os.environ['GITHUB_TOKEN']}")
     with urllib.request.urlopen(req, timeout=30) as r:

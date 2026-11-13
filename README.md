@@ -1,4 +1,4 @@
-# frame-extractor-mcp
+# storyboard-mcp
 
 Servidor **MCP** (Model Context Protocol) que deja a un asistente como Claude **ver un vídeo**. Resume el vídeo en una **hoja de contactos** (una cuadrícula de fotogramas) y saca los fotogramas que quieras a tamaño completo. Para elegir los fotogramas puede:
 - quedarse con los **más nítidos** de cada tramo;
@@ -40,10 +40,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh        # macOS / Linux
 
 **2. Descarga el servidor y conéctalo a tu asistente:**
 ```bash
-git clone https://github.com/Eliaxs1900/frame-extractor-mcp.git
-claude mcp add --scope user frame-extractor -- uv run --script "$PWD/frame-extractor-mcp/server.py"
+git clone https://github.com/Eliaxs1900/storyboard-mcp.git
+claude mcp add --scope user storyboard -- uv run --script "$PWD/storyboard-mcp/server.py"
 ```
-Con `claude mcp list` deberías ver `frame-extractor: … ✔ Connected`. Para Claude Desktop y otros clientes, mira [Instalación](#instalación).
+Con `claude mcp list` deberías ver `storyboard: … ✔ Connected`. Para Claude Desktop y otros clientes, mira [Instalación](#instalación).
 
 **3. Pídeselo al asistente**, indicando la ruta del vídeo:
 
@@ -74,7 +74,7 @@ Las imágenes se guardan donde diga el asistente (o donde tú le indiques). La r
 
 ## Por qué existe
 
-Los modelos no pueden reproducir un vídeo: hay que enseñarles fotogramas. Si los fotogramas se cogen a ciegas, en un vídeo grabado a mano muchos salen **movidos**, y en un plano fijo salen **repetidos**. `frame-extractor-mcp` lo resuelve:
+Los modelos no pueden reproducir un vídeo: hay que enseñarles fotogramas. Si los fotogramas se cogen a ciegas, en un vídeo grabado a mano muchos salen **movidos**, y en un plano fijo salen **repetidos**. `storyboard-mcp` lo resuelve:
 - **mide la nitidez** de cada fotograma (varianza de la imagen de bordes) y descarta los borrosos;
 - **detecta los casi iguales**;
 - **calcula él mismo las posiciones** a partir de la duración y del número de fotogramas, para que el asistente pida "uno cada 10 %" o "uno cada 30 s" sin hacer cuentas.
@@ -161,19 +161,19 @@ Guarda fotogramas concretos a tamaño completo (JPEG).
 Requisitos: macOS, Linux o Windows con [`uv`](https://docs.astral.sh/uv/getting-started/installation/). La primera ejecución descarga `mcp`, `av` y `pillow` en un entorno aislado.
 
 ```bash
-git clone https://github.com/Eliaxs1900/frame-extractor-mcp.git
+git clone https://github.com/Eliaxs1900/storyboard-mcp.git
 ```
 
 **Claude Code**
 ```bash
-claude mcp add --scope user frame-extractor -- uv run --script /RUTA/A/frame-extractor-mcp/server.py
+claude mcp add --scope user storyboard -- uv run --script /RUTA/A/storyboard-mcp/server.py
 ```
 
 **Claude Desktop y otros clientes MCP** (en Claude Desktop, el archivo es `claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "frame-extractor": { "command": "uv", "args": ["run", "--script", "/RUTA/A/frame-extractor-mcp/server.py"] }
+    "storyboard": { "command": "uv", "args": ["run", "--script", "/RUTA/A/storyboard-mcp/server.py"] }
   }
 }
 ```
