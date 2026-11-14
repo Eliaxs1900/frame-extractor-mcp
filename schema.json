@@ -1,0 +1,3539 @@
+{
+ "server": "storyboard",
+ "version": "2.0.0",
+ "conventions": [
+  "Every tool takes the same sections: input (required), select, panels, layout, style, output. Unknown keys are rejected with the list of allowed ones.",
+  "input: exactly one of video (path), images (list of paths) or folder (path, with optional pattern).",
+  "Paths: absolute or ~/... A relative path is resolved against the server's working directory.",
+  "Video positions: frame numbers 0..frames-1; seconds from the first frame (0.0); % from the first frame (0) to the last (100). Images: index 0..count-1, file name, or % of the list.",
+  "Colours: #RRGGBB, #RRGGBBAA, #RGB, #RGBA or a CSS name. Sizes in px.",
+  "Defaults: video -> the sharpest frame of each of 12 stretches; images -> all; layout grid with 4 columns; theme dark (black page); output png in a temporary folder named in the answer.",
+  "Answers are JSON (also as structured content). make_storyboard also returns a small image of page 1."
+ ],
+ "tools": {
+  "media_info": {
+   "description": "What the input is. Video: duration, fps, number of frames, size, rotation and codec (fast: it does not decode the video). Images: how many, and each one's index, name, format and size. Call it first to know the limits for positions (frames 0 to frames - 1). An image with duplicate_of has exactly the same bytes as the earlier image of that index.\nExample: {\"input\": {\"video\": \"/abs/clip.mp4\"}} or {\"input\": {\"folder\": \"/abs/photos\"}}.",
+   "input_schema": {
+    "$defs": {
+     "InputSpec": {
+      "additionalProperties": false,
+      "description": "What to turn into panels: exactly one of video, images or folder.",
+      "properties": {
+       "video": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Path of a video file (mp4, mov, mkv, webm, avi...). Absolute or ~/...",
+        "examples": [
+         "~/Movies/clip.mp4"
+        ]
+       },
+       "images": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "string"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Paths of image files, in panel order (1 to 1000). Formats: jpg, png, webp, gif, bmp, tiff, heic.",
+        "examples": [
+         [
+          "~/shots/001.jpg",
+          "~/shots/002.jpg"
+         ]
+        ]
+       },
+       "folder": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "A folder: every image in it (not in subfolders) becomes the input, sorted by file name (img2 before img10)."
+       },
+       "pattern": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "With folder: only file names matching this pattern, e.g. \"*.png\" or \"shot_*\". Default: every image."
+       }
+      },
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "input": {
+      "$ref": "#/$defs/InputSpec"
+     }
+    },
+    "required": [
+     "input"
+    ],
+    "type": "object"
+   },
+   "output_schema": {
+    "$defs": {
+     "ImageInfo": {
+      "additionalProperties": false,
+      "properties": {
+       "index": {
+        "description": "Position in the input, 0 = first.",
+        "type": "integer"
+       },
+       "path": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       },
+       "format": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "\"JPEG\", \"PNG\", \"HEIF\"..."
+       },
+       "size": {
+        "description": "[width, height] as stored.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "displayed_size": {
+        "description": "[width, height] after the EXIF orientation.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "bytes": {
+        "type": "integer"
+       },
+       "duplicate_of": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Index of an earlier image with exactly the same bytes."
+       }
+      },
+      "required": [
+       "index",
+       "path",
+       "name",
+       "size",
+       "displayed_size",
+       "bytes"
+      ],
+      "type": "object"
+     },
+     "VideoInfo": {
+      "additionalProperties": false,
+      "properties": {
+       "path": {
+        "description": "Absolute path of the video.",
+        "type": "string"
+       },
+       "duration_s": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Length in seconds."
+       },
+       "fps": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Frames per second."
+       },
+       "frames": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Number of frames; frame numbers go from 0 to frames - 1."
+       },
+       "size": {
+        "description": "[width, height] as stored in the file.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "rotation_deg": {
+        "default": 0,
+        "description": "0, 90, 180 or 270: clockwise turn applied to every picture (phones film sideways).",
+        "type": "integer"
+       },
+       "displayed_size": {
+        "description": "[width, height] after that turn: size of the full frames.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "codec": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       }
+      },
+      "required": [
+       "path",
+       "size",
+       "displayed_size"
+      ],
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "kind": {
+      "enum": [
+       "video",
+       "images"
+      ],
+      "type": "string"
+     },
+     "video": {
+      "anyOf": [
+       {
+        "$ref": "#/$defs/VideoInfo"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Images: how many."
+     },
+     "folder": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "formats": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Images: count per format, e.g. {\"JPEG\": 10}."
+     },
+     "sizes": {
+      "anyOf": [
+       {
+        "items": {
+         "items": {
+          "type": "integer"
+         },
+         "type": "array"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Images: the different displayed sizes [width, height], most common first."
+     },
+     "images": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/$defs/ImageInfo"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     }
+    },
+    "required": [
+     "kind"
+    ],
+    "type": "object"
+   },
+   "examples": {
+    "minimal": {
+     "input": {
+      "video": "/Users/ana/Movies/clip.mp4"
+     }
+    },
+    "full": {
+     "input": {
+      "folder": "/Users/ana/Pictures/rodaje",
+      "pattern": "*.jpg"
+     }
+    }
+   }
+  },
+  "make_storyboard": {
+   "description": "Turn a video or a list of images into pages of panels you can look at, plus one JSON entry per panel. Templates (layout.template): grid (contact sheet, the default), storyboard (number above each picture, notes box below), list (picture left, notes right), strip (one row). Pages as PNG or JPG files, or one multi-page PDF (output.format); optional shot list (JSON / CSV) and full-size frames.\nOnly input is required: {\"input\": {\"video\": \"/abs/clip.mp4\"}} gives a grid of the 12 sharpest frames (one per stretch of the video). The answer lists the page files (open them to see the panels; page 1 also comes as an image) and, per panel, its number, page, frame and time (video) or image index and name (images), sharpness and notes.\nTo write a storyboard: look at a first result, then call again with the same select plus panels[] (one object per panel, in order: shot, camera, action, dialogue, sound, transition, duration_s) and layout.template \"storyboard\"; or give each panel its own position (frame, at_s, at_pct, image, image_name).\nRecipes: 8 sharp, different frames: {\"select\": {\"count\": 8, \"min_difference\": 3}}. One every 10 %: {\"select\": {\"step_pct\": 10}}. The 4 sharpest photos, no repeats: {\"input\": {\"folder\": \"/abs/photos\"}, \"select\": {\"mode\": \"best\", \"count\": 4}}. Printable storyboard: {\"layout\": {\"template\": \"storyboard\", \"page\": \"A4\"}, \"style\": {\"theme\": \"light\"}, \"output\": {\"format\": \"pdf\", \"shot_list\": [\"csv\"]}} (add \"csv_style\": \"excel_es\" for Excel in Spanish). If fewer panels than asked come out, warnings says why and what to change. get_schema {\"tool\": \"make_storyboard\"} has a full example.",
+   "input_schema": {
+    "$defs": {
+     "GuidesSpec": {
+      "additionalProperties": false,
+      "description": "Lines drawn over each picture.",
+      "properties": {
+       "aspects": {
+        "default": [],
+        "description": "Frame lines for these aspect ratios: what a crop to 2.39:1, 9:16... would keep.",
+        "examples": [
+         [
+          "2.39:1"
+         ]
+        ],
+        "items": {
+         "enum": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "1:1",
+          "4:5",
+          "1.85:1",
+          "2:1",
+          "2.39:1"
+         ],
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "shade": {
+        "default": true,
+        "description": "Darken what falls outside the first aspect in aspects.",
+        "type": "boolean"
+       },
+       "safe_zone": {
+        "default": false,
+        "description": "Draw the safe area: a dashed box of safe_zone_pct of the picture.",
+        "type": "boolean"
+       },
+       "safe_zone_pct": {
+        "default": 90,
+        "description": "Size of the safe area, % of the picture.",
+        "maximum": 100,
+        "minimum": 50,
+        "type": "number"
+       },
+       "thirds": {
+        "default": false,
+        "description": "Draw the rule-of-thirds grid.",
+        "type": "boolean"
+       }
+      },
+      "type": "object"
+     },
+     "InputSpec": {
+      "additionalProperties": false,
+      "description": "What to turn into panels: exactly one of video, images or folder.",
+      "properties": {
+       "video": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Path of a video file (mp4, mov, mkv, webm, avi...). Absolute or ~/...",
+        "examples": [
+         "~/Movies/clip.mp4"
+        ]
+       },
+       "images": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "string"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Paths of image files, in panel order (1 to 1000). Formats: jpg, png, webp, gif, bmp, tiff, heic.",
+        "examples": [
+         [
+          "~/shots/001.jpg",
+          "~/shots/002.jpg"
+         ]
+        ]
+       },
+       "folder": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "A folder: every image in it (not in subfolders) becomes the input, sorted by file name (img2 before img10)."
+       },
+       "pattern": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "With folder: only file names matching this pattern, e.g. \"*.png\" or \"shot_*\". Default: every image."
+       }
+      },
+      "type": "object"
+     },
+     "LabelSpec": {
+      "additionalProperties": false,
+      "description": "Caption of each panel: a band over the picture (grid, strip) or a line next to the panel\nnumber (storyboard, list).",
+      "properties": {
+       "show": {
+        "default": true,
+        "description": "false: no caption (panel numbers in storyboard and list stay).",
+        "type": "boolean"
+       },
+       "fields": {
+        "anyOf": [
+         {
+          "items": {
+           "enum": [
+            "number",
+            "frame",
+            "time",
+            "timecode",
+            "pct",
+            "sharpness",
+            "sharpness_pct",
+            "anchor",
+            "image",
+            "name",
+            "size"
+           ],
+           "type": "string"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "What the caption says, in this order. Video: number, frame (#123), time (4.1s), timecode (0:00:04.1), pct (20%), sharpness, sharpness_pct, anchor (first / last frame). Images: number, image (#3), name (file name), size (4032×3024), pct, sharpness, sharpness_pct. Default: video [\"number\", \"time\", \"frame\", \"anchor\"], images [\"number\", \"name\"]."
+       },
+       "template": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Free text instead of fields, with placeholders: {number} {frame} {frames_total} {time} {timecode} {pct} {pct1} {sharpness} {sharpness_pct} {anchor} {image} {name} {images_total} {size}. E.g. \"{number}. {timecode}\"."
+       },
+       "position": {
+        "default": "top",
+        "description": "grid and strip: band at the top or the bottom of the picture.",
+        "enum": [
+         "top",
+         "bottom"
+        ],
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "LayoutSpec": {
+      "additionalProperties": false,
+      "description": "How the panels are arranged on the pages.",
+      "properties": {
+       "template": {
+        "default": "grid",
+        "description": "\"grid\": contact sheet, caption band over each picture. \"storyboard\": panel number above each picture and a notes box below. \"list\": one panel per row, picture left, number and notes right. \"strip\": one row of panels with notes below.",
+        "enum": [
+         "grid",
+         "storyboard",
+         "list",
+         "strip"
+        ],
+        "type": "string"
+       },
+       "columns": {
+        "anyOf": [
+         {
+          "maximum": 24,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Panels per row. Default: grid 4, storyboard 3, list 1, strip all the panels (up to 8)."
+       },
+       "rows": {
+        "anyOf": [
+         {
+          "maximum": 200,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Rows per page; more panels make more pages. Default: all rows on one page (page \"auto\"), as many as fit (fixed page), strip 1."
+       },
+       "page": {
+        "default": "auto",
+        "description": "\"auto\": the page grows to fit the panels. \"A4\", \"Letter\", \"16:9\": fixed page size (at output.dpi); the panels are scaled to fit.",
+        "enum": [
+         "auto",
+         "A4",
+         "Letter",
+         "16:9"
+        ],
+        "type": "string"
+       },
+       "orientation": {
+        "default": "landscape",
+        "description": "Fixed pages only.",
+        "enum": [
+         "landscape",
+         "portrait"
+        ],
+        "type": "string"
+       },
+       "panel_width": {
+        "default": 480,
+        "description": "Width of each picture, px. With a fixed page it is computed to fill the page.",
+        "maximum": 4096,
+        "minimum": 64,
+        "type": "integer"
+       },
+       "aspect": {
+        "default": "source",
+        "description": "Shape of the picture boxes: \"source\" = the video's (or the first image's) shape, or a fixed ratio.",
+        "enum": [
+         "source",
+         "16:9",
+         "9:16",
+         "4:3",
+         "3:4",
+         "1:1",
+         "4:5",
+         "1.85:1",
+         "2:1",
+         "2.39:1"
+        ],
+        "type": "string"
+       },
+       "fit": {
+        "default": "contain",
+        "description": "\"contain\": the whole picture, with bars if its shape differs from the box; \"cover\": fill the box, cropping the centre.",
+        "enum": [
+         "contain",
+         "cover"
+        ],
+        "type": "string"
+       },
+       "margin": {
+        "anyOf": [
+         {
+          "maximum": 2000,
+          "minimum": 0,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Space around the page content, px. Default: grid 0, storyboard and list 48, strip 24."
+       },
+       "gap": {
+        "anyOf": [
+         {
+          "maximum": 2000,
+          "minimum": 0,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Space between panels, px. Default: grid 0, storyboard 28, list 24, strip 12."
+       },
+       "padding": {
+        "anyOf": [
+         {
+          "maximum": 500,
+          "minimum": 0,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Space inside the header, footer, captions and notes boxes, px. Default: from the text size."
+       },
+       "header": {
+        "default": true,
+        "description": "Band on top with a title and a subtitle.",
+        "type": "boolean"
+       },
+       "title": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Header title. Default: the video's file name, or the folder name / \"N imágenes\". \"\" hides it."
+       },
+       "subtitle": {
+        "anyOf": [
+         {
+          "maxLength": 300,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Header second line. Default: the video's size, fps, duration, frames and codec, or the images' count, formats and sizes. \"\" hides it."
+       },
+       "footer": {
+        "default": true,
+        "description": "Band at the bottom: how the panels were chosen, and the page number when there are several pages.",
+        "type": "boolean"
+       },
+       "footer_text": {
+        "anyOf": [
+         {
+          "maxLength": 300,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Replaces the automatic footer text (the page number stays)."
+       },
+       "label": {
+        "$ref": "#/$defs/LabelSpec"
+       },
+       "numbering": {
+        "$ref": "#/$defs/NumberingSpec"
+       },
+       "notes": {
+        "$ref": "#/$defs/NotesSpec"
+       },
+       "guides": {
+        "$ref": "#/$defs/GuidesSpec"
+       },
+       "language": {
+        "default": "es",
+        "description": "Language of the texts drawn on the pages (header, footer, captions, notes titles).",
+        "enum": [
+         "es",
+         "en"
+        ],
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "NotesSpec": {
+      "additionalProperties": false,
+      "description": "Notes box of each panel, filled with the texts of panels[i].",
+      "properties": {
+       "show": {
+        "anyOf": [
+         {
+          "type": "boolean"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Default: true for storyboard and list; for strip, true when panels[] has notes; false for grid."
+       },
+       "fields": {
+        "default": [
+         "shot",
+         "camera",
+         "action",
+         "dialogue",
+         "sound",
+         "transition",
+         "duration_s"
+        ],
+        "description": "Which panels[] texts are printed, in this order.",
+        "items": {
+         "enum": [
+          "shot",
+          "camera",
+          "action",
+          "dialogue",
+          "sound",
+          "transition",
+          "duration_s"
+         ],
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "blank_lines": {
+        "default": 3,
+        "description": "Ruled empty lines in the box of a panel without notes, to write by hand (0 = no box).",
+        "maximum": 20,
+        "minimum": 0,
+        "type": "integer"
+       },
+       "max_lines": {
+        "default": 8,
+        "description": "Most text lines per box; longer notes end in \"…\".",
+        "maximum": 60,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     },
+     "NumberingSpec": {
+      "additionalProperties": false,
+      "description": "Panel numbers (panels[i].number overrides one).",
+      "properties": {
+       "start": {
+        "default": 1,
+        "description": "First number.",
+        "maximum": 1000000,
+        "minimum": 0,
+        "type": "integer"
+       },
+       "step": {
+        "default": 1,
+        "description": "Increment: 10 with start 10 and format \"SH{n:03d}\" gives SH010, SH020, SH030...",
+        "maximum": 10000,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "format": {
+        "default": "{n}",
+        "description": "{n} is the running number and accepts Python format specs: \"5.{n}\" -> 5.1, 5.2...; \"SH{n:03d}\" -> SH001; \"{n}A\" -> 1A.",
+        "maxLength": 40,
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "Panel": {
+      "additionalProperties": false,
+      "description": "One panel's notes (all optional). Without positions, panels[i] goes with the i-th chosen\npanel. With positions (all panels must have one), the panels themselves are the selection:\neach shows the frame or image it names, in the given order.",
+      "properties": {
+       "frame": {
+        "anyOf": [
+         {
+          "minimum": 0,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: frame number this panel shows."
+       },
+       "at_s": {
+        "anyOf": [
+         {
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: second this panel shows."
+       },
+       "at_pct": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Position this panel shows, in %."
+       },
+       "image": {
+        "anyOf": [
+         {
+          "minimum": 0,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: index of the image this panel shows (0 = first)."
+       },
+       "image_name": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: file name of the image this panel shows."
+       },
+       "number": {
+        "anyOf": [
+         {
+          "maxLength": 24,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Number to print instead of the automatic one, e.g. \"12A\"."
+       },
+       "shot": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Shot size or type, e.g. \"PG\", \"plano medio\", \"close-up\"."
+       },
+       "camera": {
+        "anyOf": [
+         {
+          "maxLength": 300,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Camera movement, e.g. \"paneo a la derecha\"."
+       },
+       "action": {
+        "anyOf": [
+         {
+          "maxLength": 2000,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "What happens."
+       },
+       "dialogue": {
+        "anyOf": [
+         {
+          "maxLength": 2000,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Dialogue or voice-over."
+       },
+       "sound": {
+        "anyOf": [
+         {
+          "maxLength": 1000,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Sound effects or music."
+       },
+       "transition": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Transition to the next panel, e.g. \"corte\", \"fundido a negro\"."
+       },
+       "duration_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "maximum": 36000,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Planned duration, in seconds."
+       }
+      },
+      "type": "object"
+     },
+     "SelectSpec": {
+      "additionalProperties": false,
+      "description": "Which frames (video) or images become panels. Default: video, the sharpest frame of each\nof 12 equal stretches; images, every image in order. Exact positions (step_pct, step_s,\nat_pct, at_s, at_frames, at_images, at_names) can be combined; when any is given, mode,\ncount, every_* and the min_* filters are not used.",
+      "properties": {
+       "mode": {
+        "default": "auto",
+        "description": "\"sharpest\": the range is cut into count equal stretches and the least blurry frame of each is taken (picks at least half a stretch apart). \"even\": the frame in the middle of each stretch. \"best\": the count sharpest of the whole range, never the same picture twice, in their order (they may all come from one part of a video). \"all\": every frame / image of the range (at most 500). \"auto\" (default): \"sharpest\" for video; for images \"all\", or \"sharpest\" when count or every_pct is given.",
+        "enum": [
+         "auto",
+         "sharpest",
+         "even",
+         "best",
+         "all"
+        ],
+        "type": "string"
+       },
+       "count": {
+        "default": 12,
+        "description": "How many panels: number of equal stretches (sharpest, even) or of pictures (\"best\").",
+        "maximum": 500,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "every_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, instead of count: cut the range into stretches of N seconds and take one frame from each (the sharpest; \"even\": the middle one). Times come out irregular; for exactly every N seconds use step_s."
+       },
+       "every_pct": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Instead of count: one stretch every N % of the range."
+       },
+       "step_pct": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Exact positions: one panel every N % of the range, both ends included (25 -> 0, 25, 50, 75 and 100 %)."
+       },
+       "step_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, exact positions: a frame exactly every N seconds from the start of the range (0, N, 2N...), even if it is blurred: add snap_s to move the blurred ones to a sharp frame nearby."
+       },
+       "at_pct": {
+        "anyOf": [
+         {
+          "items": {
+           "maximum": 100,
+           "minimum": 0,
+           "type": "number"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Exact positions in % (0 = first frame or image, 100 = last).",
+        "examples": [
+         [
+          0,
+          50,
+          100
+         ]
+        ]
+       },
+       "at_s": {
+        "anyOf": [
+         {
+          "items": {
+           "minimum": 0,
+           "type": "number"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, exact positions: times in seconds (0.0 = first frame).",
+        "examples": [
+         [
+          1.5,
+          12
+         ]
+        ]
+       },
+       "at_frames": {
+        "anyOf": [
+         {
+          "items": {
+           "minimum": 0,
+           "type": "integer"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, exact positions: frame numbers (0 = first frame).",
+        "examples": [
+         [
+          0,
+          240
+         ]
+        ]
+       },
+       "at_images": {
+        "anyOf": [
+         {
+          "items": {
+           "minimum": 0,
+           "type": "integer"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images, exact positions: indexes in the input (0 = first image)."
+       },
+       "at_names": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "string"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images, exact positions: file names, e.g. [\"IMG_0042.jpg\"]."
+       },
+       "snap_s": {
+        "default": 0,
+        "description": "Video, exact positions: when the exact frame is clearly blurrier (under 80 %) than the sharpest within ± N seconds, use that one instead; sharp positions stay exact (0.5 suits handheld video).",
+        "maximum": 10,
+        "minimum": 0,
+        "type": "number"
+       },
+       "start_s": {
+        "anyOf": [
+         {
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: only this part, from this second..."
+       },
+       "end_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: ... to this second."
+       },
+       "start_pct": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Only this part, from this % (0 = first frame or image) ..."
+       },
+       "end_pct": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "... to this % (100 = last)."
+       },
+       "min_sharpness": {
+        "default": 0,
+        "description": "Never pick a frame or image less sharp than this (typical values: selection.sharpness_stats of an earlier answer).",
+        "minimum": 0,
+        "type": "number"
+       },
+       "drop_blurriest_pct": {
+        "default": 0,
+        "description": "Ignore the blurriest N % of the measured frames or images (30 = keep the sharpest 70 %). The sharpness value this gives is selection.threshold. Sharpness measures edges: a flat picture (plain colours, a logo) scores low without being blurred.",
+        "exclusiveMaximum": 100,
+        "minimum": 0,
+        "type": "number"
+       },
+       "min_gap_s": {
+        "default": 0,
+        "description": "Video: drop a pick closer than N seconds to the previous one.",
+        "minimum": 0,
+        "type": "number"
+       },
+       "min_difference": {
+        "default": 0,
+        "description": "Drop a pick that looks almost the same as the previous one kept (\"best\": as any one kept): mean difference 0-255 of small 64×36 colour copies. 1-2 removes only near-identical pictures, 3 suits small movements on a fixed background, 4-8 removes repeats of a still shot. \"best\" uses 1 unless you set it (0 = only exact repeats).",
+        "maximum": 255,
+        "minimum": 0,
+        "type": "number"
+       },
+       "analysis_width": {
+        "default": 480,
+        "description": "Width in px at which sharpness is measured (bigger = finer and slower).",
+        "maximum": 4096,
+        "minimum": 64,
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     },
+     "StoryboardOutput": {
+      "additionalProperties": false,
+      "description": "Where and how the pages are written.",
+      "properties": {
+       "dir": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Folder for every file (created if missing). Default: <system temp>/storyboard-mcp/<input name>/. The answer has the full paths."
+       },
+       "name": {
+        "anyOf": [
+         {
+          "maxLength": 120,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Base file name, no extension. Default: <input name>_<template>. Several pages add _p1, _p2..."
+       },
+       "format": {
+        "default": "png",
+        "description": "\"png\" (lossless; keeps a transparent background), \"jpg\", or \"pdf\" (one file, one PDF page per page). Any case. \"webp\", \"gif\", \"mp4\" and \"webm\" are planned for animated output and not available yet.",
+        "enum": [
+         "png",
+         "jpg",
+         "pdf"
+        ],
+        "type": "string"
+       },
+       "quality": {
+        "default": 90,
+        "description": "JPEG quality (jpg, and the pictures inside a pdf).",
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "dpi": {
+        "default": 150,
+        "description": "Resolution of fixed pages (A4, Letter, 16:9) and of the pdf.",
+        "maximum": 600,
+        "minimum": 50,
+        "type": "integer"
+       },
+       "shot_list": {
+        "default": [],
+        "description": "Also write the shot list, one row per panel with its position and notes: <name>_shots.json and/or <name>_shots.csv (UTF-8 with BOM).",
+        "items": {
+         "enum": [
+          "json",
+          "csv"
+         ],
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "csv_style": {
+        "default": "standard",
+        "description": "\"standard\": comma separator, dot decimals, English column names, every column. \"excel_es\": for Excel in Spanish (and other languages with decimal commas): semicolon separator, decimal commas, Spanish column names, no always-empty columns, and panel numbers kept as text (3.1 is not turned into a date).",
+        "enum": [
+         "standard",
+         "excel_es"
+        ],
+        "type": "string"
+       },
+       "frames": {
+        "default": false,
+        "description": "Also save each panel's picture at full size in <dir>/<name>_frames/ (video frames as JPEG, images copied unchanged).",
+        "type": "boolean"
+       },
+       "also_without_labels": {
+        "default": false,
+        "description": "Also write the pages without captions (<name>_nolabels...).",
+        "type": "boolean"
+       },
+       "preview": {
+        "default": true,
+        "description": "Include a small image of page 1 in the answer.",
+        "type": "boolean"
+       }
+      },
+      "type": "object"
+     },
+     "StyleSpec": {
+      "additionalProperties": false,
+      "description": "Colours, fonts and sizes. Everything has a default from the theme; set only what you\nwant to change. Colours: \"#RRGGBB\", \"#RRGGBBAA\" (with alpha), \"#RGB\", \"#RGBA\" or a CSS name\n(\"white\", \"navy\").",
+      "properties": {
+       "theme": {
+        "default": "dark",
+        "description": "\"dark\": black page (#000000) and white text; \"light\": white page (#ffffff) and black text.",
+        "enum": [
+         "dark",
+         "light"
+        ],
+        "type": "string"
+       },
+       "background": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Page background (also the bars of \"contain\"). Default: dark #000000, light #ffffff. PNG keeps alpha: \"#00000000\" is transparent."
+       },
+       "text": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Main text: title, panel numbers. Default: dark #ffffff, light #000000."
+       },
+       "text_secondary": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Subtitle, footer, captions in storyboard and list. Default: dark #a3a3a3, light #525252."
+       },
+       "accent": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Notes titles (ACCIÓN, DIÁLOGO...). Default: dark #facc15, light #b45309."
+       },
+       "label_background": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Caption band over the picture (grid, strip). Default: dark #000000, light #ffffff. Alpha allowed: #000000aa."
+       },
+       "label_text": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Caption band text. Default: dark #facc15, light #000000."
+       },
+       "panel_border": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Border of pictures and notes boxes. Default: dark #3f3f46, light #d4d4d4."
+       },
+       "border_width": {
+        "anyOf": [
+         {
+          "maximum": 40,
+          "minimum": 0,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Border width, px (0 = none). Default: grid 0, the others 1."
+       },
+       "notes_background": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Notes boxes. Default: dark #0a0a0a, light #ffffff."
+       },
+       "notes_text": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Notes text. Default: dark #e5e5e5, light #171717."
+       },
+       "notes_rule": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Ruled lines of empty notes boxes. Default: dark #2e2e2e, light #e5e5e5."
+       },
+       "guides": {
+        "anyOf": [
+         {
+          "pattern": "^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[A-Za-z]+)$",
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Guide lines (aspects, safe area, thirds). Default: dark #22d3ee, light #0891b2."
+       },
+       "font": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Font file (.ttf, .otf, .ttc) or installed font name (\"Helvetica\", \"Arial\", \"DejaVu Sans\"). Default: Arial, Helvetica or DejaVu Sans, whichever exists."
+       },
+       "font_bold": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Bold font, same rules. Default: the bold version of font."
+       },
+       "title_size": {
+        "anyOf": [
+         {
+          "maximum": 400,
+          "minimum": 6,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Header title, px. Default: from the page width."
+       },
+       "text_size": {
+        "anyOf": [
+         {
+          "maximum": 400,
+          "minimum": 6,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Subtitle and footer, px. Default: from the page width."
+       },
+       "label_size": {
+        "anyOf": [
+         {
+          "maximum": 400,
+          "minimum": 6,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Captions, px. Default: picture width / 22."
+       },
+       "number_size": {
+        "anyOf": [
+         {
+          "maximum": 400,
+          "minimum": 6,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Panel numbers (storyboard, list), px. Default: 1.45 × label_size."
+       },
+       "notes_size": {
+        "anyOf": [
+         {
+          "maximum": 400,
+          "minimum": 6,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Notes text, px. Default: 0.92 × label_size."
+       },
+       "sharpen": {
+        "default": 0.5,
+        "description": "Sharpening after shrinking each picture (0 = none).",
+        "maximum": 2,
+        "minimum": 0,
+        "type": "number"
+       }
+      },
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "input": {
+      "$ref": "#/$defs/InputSpec"
+     },
+     "select": {
+      "$ref": "#/$defs/SelectSpec"
+     },
+     "panels": {
+      "default": [],
+      "description": "Notes per panel, in panel order (or with positions, to choose the panels yourself).",
+      "items": {
+       "$ref": "#/$defs/Panel"
+      },
+      "maxItems": 500,
+      "type": "array"
+     },
+     "layout": {
+      "$ref": "#/$defs/LayoutSpec"
+     },
+     "style": {
+      "$ref": "#/$defs/StyleSpec"
+     },
+     "output": {
+      "$ref": "#/$defs/StoryboardOutput"
+     }
+    },
+    "required": [
+     "input"
+    ],
+    "type": "object"
+   },
+   "output_schema": {
+    "$defs": {
+     "Dropped": {
+      "additionalProperties": false,
+      "properties": {
+       "frame": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "image": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "name": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "reason": {
+        "description": "\"min_gap_s\", \"min_difference\" or \"min_sharpness\" (mode \"all\"). Mode \"best\" lists only the repeats it skipped before reaching count, not the pictures below the threshold: use mode \"all\" to list those.",
+        "type": "string"
+       },
+       "similar_to": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "min_difference / min_gap_s: frame or image index of the kept panel it was compared with."
+       },
+       "difference": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "min_difference: the measured difference, 0-255."
+       }
+      },
+      "required": [
+       "reason"
+      ],
+      "type": "object"
+     },
+     "ImageInfo": {
+      "additionalProperties": false,
+      "properties": {
+       "index": {
+        "description": "Position in the input, 0 = first.",
+        "type": "integer"
+       },
+       "path": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       },
+       "format": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "\"JPEG\", \"PNG\", \"HEIF\"..."
+       },
+       "size": {
+        "description": "[width, height] as stored.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "displayed_size": {
+        "description": "[width, height] after the EXIF orientation.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "bytes": {
+        "type": "integer"
+       },
+       "duplicate_of": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Index of an earlier image with exactly the same bytes."
+       }
+      },
+      "required": [
+       "index",
+       "path",
+       "name",
+       "size",
+       "displayed_size",
+       "bytes"
+      ],
+      "type": "object"
+     },
+     "MediaInfoResult": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "enum": [
+         "video",
+         "images"
+        ],
+        "type": "string"
+       },
+       "video": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/VideoInfo"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "count": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: how many."
+       },
+       "folder": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "formats": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "integer"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: count per format, e.g. {\"JPEG\": 10}."
+       },
+       "sizes": {
+        "anyOf": [
+         {
+          "items": {
+           "items": {
+            "type": "integer"
+           },
+           "type": "array"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: the different displayed sizes [width, height], most common first."
+       },
+       "images": {
+        "anyOf": [
+         {
+          "items": {
+           "$ref": "#/$defs/ImageInfo"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       }
+      },
+      "required": [
+       "kind"
+      ],
+      "type": "object"
+     },
+     "PageResult": {
+      "additionalProperties": false,
+      "properties": {
+       "page": {
+        "type": "integer"
+       },
+       "path": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Image of the page; with format pdf, the PDF file (this is page number `page` of it)."
+       },
+       "size": {
+        "description": "[width, height] px.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "panels": {
+        "description": "n of the panels on this page.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       }
+      },
+      "required": [
+       "page",
+       "size",
+       "panels"
+      ],
+      "type": "object"
+     },
+     "PanelResult": {
+      "additionalProperties": false,
+      "properties": {
+       "n": {
+        "description": "Order of the panel, 1 = first.",
+        "type": "integer"
+       },
+       "number": {
+        "description": "Number printed on the panel.",
+        "type": "string"
+       },
+       "page": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Page where it is."
+       },
+       "frame": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: frame number."
+       },
+       "time_s": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: seconds from the first frame."
+       },
+       "timecode": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: h:mm:ss.s"
+       },
+       "pct": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Position, 0 = first frame or image, 100 = last."
+       },
+       "image": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: index in the input."
+       },
+       "name": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: file name."
+       },
+       "source": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: path of the original image."
+       },
+       "sharpness": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Higher = sharper (variance of the edges)."
+       },
+       "sharpness_pct": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Sharpness as a % of the sharpest panel of this answer (not a percentile)."
+       },
+       "anchor": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "\"first_frame\" / \"last_frame\" on the first / last frame of the video."
+       },
+       "file": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Full-size frame or image copy (output.frames / extract_frames), upright (rotation already applied)."
+       },
+       "size": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "integer"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "[width, height] of file, px."
+       },
+       "notes": {
+        "anyOf": [
+         {
+          "additionalProperties": true,
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "The panel's notes, as given in panels[]."
+       }
+      },
+      "required": [
+       "n",
+       "number"
+      ],
+      "type": "object"
+     },
+     "SelectionResult": {
+      "additionalProperties": false,
+      "properties": {
+       "mode": {
+        "description": "\"sharpest\", \"even\", \"all\", \"positions\" or \"panels\".",
+        "type": "string"
+       },
+       "range_s": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "number"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: [start, end] in seconds."
+       },
+       "range_pct": {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       "measured": {
+        "description": "Frames or images whose sharpness was measured (only these values are comparable with each other).",
+        "type": "integer"
+       },
+       "threshold": {
+        "description": "Frames or images below this sharpness were never picked.",
+        "type": "number"
+       },
+       "sharpness_stats": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "number"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "min, p25, median, p75, max of the measured ones (nearest measured value, not interpolated): use it for min_sharpness."
+       }
+      },
+      "required": [
+       "mode",
+       "range_pct",
+       "measured",
+       "threshold"
+      ],
+      "type": "object"
+     },
+     "VideoInfo": {
+      "additionalProperties": false,
+      "properties": {
+       "path": {
+        "description": "Absolute path of the video.",
+        "type": "string"
+       },
+       "duration_s": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Length in seconds."
+       },
+       "fps": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Frames per second."
+       },
+       "frames": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Number of frames; frame numbers go from 0 to frames - 1."
+       },
+       "size": {
+        "description": "[width, height] as stored in the file.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "rotation_deg": {
+        "default": 0,
+        "description": "0, 90, 180 or 270: clockwise turn applied to every picture (phones film sideways).",
+        "type": "integer"
+       },
+       "displayed_size": {
+        "description": "[width, height] after that turn: size of the full frames.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "codec": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       }
+      },
+      "required": [
+       "path",
+       "size",
+       "displayed_size"
+      ],
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "pages": {
+      "items": {
+       "$ref": "#/$defs/PageResult"
+      },
+      "type": "array"
+     },
+     "pdf": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "pages_without_labels": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "shot_list": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "{\"json\": path, \"csv\": path}"
+     },
+     "frames_dir": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null
+     },
+     "panels": {
+      "items": {
+       "$ref": "#/$defs/PanelResult"
+      },
+      "type": "array"
+     },
+     "dropped": {
+      "items": {
+       "$ref": "#/$defs/Dropped"
+      },
+      "type": "array"
+     },
+     "selection": {
+      "$ref": "#/$defs/SelectionResult"
+     },
+     "layout": {
+      "additionalProperties": true,
+      "description": "Template, columns, rows per page, picture size and page size used.",
+      "type": "object"
+     },
+     "input": {
+      "$ref": "#/$defs/MediaInfoResult"
+     },
+     "warnings": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "pages",
+     "panels",
+     "dropped",
+     "selection",
+     "layout",
+     "input"
+    ],
+    "type": "object"
+   },
+   "examples": {
+    "minimal": {
+     "input": {
+      "video": "/Users/ana/Movies/clip.mp4"
+     }
+    },
+    "full": {
+     "input": {
+      "video": "/Users/ana/Movies/clip.mp4"
+     },
+     "select": {
+      "at_s": [
+       1.5,
+       6,
+       12.5,
+       20
+      ],
+      "snap_s": 0.5
+     },
+     "panels": [
+      {
+       "shot": "PG",
+       "camera": "fijo",
+       "action": "Amanece sobre la ciudad.",
+       "sound": "tráfico lejano"
+      },
+      {
+       "shot": "PM",
+       "camera": "travelling lateral",
+       "action": "Ana cruza la calle.",
+       "dialogue": "ANA: Llego tarde.",
+       "transition": "corte"
+      },
+      {
+       "number": "2A",
+       "shot": "PP",
+       "action": "Mira el reloj.",
+       "duration_s": 2.5
+      },
+      {
+       "shot": "PG",
+       "camera": "grúa ascendente",
+       "transition": "fundido a negro"
+      }
+     ],
+     "layout": {
+      "template": "storyboard",
+      "columns": 2,
+      "page": "A4",
+      "orientation": "landscape",
+      "numbering": {
+       "start": 1,
+       "format": "5.{n}"
+      },
+      "label": {
+       "fields": [
+        "timecode",
+        "frame"
+       ]
+      },
+      "guides": {
+       "aspects": [
+        "2.39:1"
+       ],
+       "thirds": false
+      },
+      "title": "Escena 5 — La calle",
+      "language": "es"
+     },
+     "style": {
+      "theme": "light",
+      "accent": "#c2410c",
+      "font": "Helvetica"
+     },
+     "output": {
+      "dir": "/Users/ana/Desktop/storyboard",
+      "name": "escena5",
+      "format": "pdf",
+      "dpi": 150,
+      "shot_list": [
+       "json",
+       "csv"
+      ]
+     }
+    }
+   }
+  },
+  "extract_frames": {
+   "description": "Save chosen video frames at full size (JPEG or PNG), or copies of chosen images, to look at details the panels are too small to show. Same input and select as make_storyboard, e.g. {\"input\": {\"video\": \"/abs/clip.mp4\"}, \"select\": {\"at_frames\": [120, 480]}} or {\"select\": {\"at_s\": [12.5], \"snap_s\": 0.5}} (the sharpest frame within ± 0.5 s). Frames are saved upright (rotation applied), at displayed_size, as f<frame, 5 digits>.jpg (frame 42 -> f00042.jpg). Images are copied byte for byte as 001_<name>, 002_<name>... (output.names \"original\" keeps the names). Each entry of files gives its path (file) and size in px.",
+   "input_schema": {
+    "$defs": {
+     "FramesOutput": {
+      "additionalProperties": false,
+      "description": "Where and how the frames or images are written.",
+      "properties": {
+       "dir": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Folder (created if missing). Default: <system temp>/storyboard-mcp/<input name>/frames/."
+       },
+       "format": {
+        "anyOf": [
+         {
+          "enum": [
+           "jpg",
+           "png",
+           "original"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video frames: \"jpg\" (default) or \"png\". Images: \"original\" (default: the file is copied byte for byte) or converted to \"jpg\" / \"png\"."
+       },
+       "names": {
+        "default": "numbered",
+        "description": "Images: \"numbered\" (default: 001_<name>, 002_<name>... in panel order) or \"original\" (the original file name; a repeated name gets _2, _3...). Video frames are always f<frame, 5 digits>.<ext>.",
+        "enum": [
+         "numbered",
+         "original"
+        ],
+        "type": "string"
+       },
+       "quality": {
+        "default": 95,
+        "description": "JPEG quality.",
+        "maximum": 100,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     },
+     "InputSpec": {
+      "additionalProperties": false,
+      "description": "What to turn into panels: exactly one of video, images or folder.",
+      "properties": {
+       "video": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Path of a video file (mp4, mov, mkv, webm, avi...). Absolute or ~/...",
+        "examples": [
+         "~/Movies/clip.mp4"
+        ]
+       },
+       "images": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "string"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Paths of image files, in panel order (1 to 1000). Formats: jpg, png, webp, gif, bmp, tiff, heic.",
+        "examples": [
+         [
+          "~/shots/001.jpg",
+          "~/shots/002.jpg"
+         ]
+        ]
+       },
+       "folder": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "A folder: every image in it (not in subfolders) becomes the input, sorted by file name (img2 before img10)."
+       },
+       "pattern": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "With folder: only file names matching this pattern, e.g. \"*.png\" or \"shot_*\". Default: every image."
+       }
+      },
+      "type": "object"
+     },
+     "SelectSpec": {
+      "additionalProperties": false,
+      "description": "Which frames (video) or images become panels. Default: video, the sharpest frame of each\nof 12 equal stretches; images, every image in order. Exact positions (step_pct, step_s,\nat_pct, at_s, at_frames, at_images, at_names) can be combined; when any is given, mode,\ncount, every_* and the min_* filters are not used.",
+      "properties": {
+       "mode": {
+        "default": "auto",
+        "description": "\"sharpest\": the range is cut into count equal stretches and the least blurry frame of each is taken (picks at least half a stretch apart). \"even\": the frame in the middle of each stretch. \"best\": the count sharpest of the whole range, never the same picture twice, in their order (they may all come from one part of a video). \"all\": every frame / image of the range (at most 500). \"auto\" (default): \"sharpest\" for video; for images \"all\", or \"sharpest\" when count or every_pct is given.",
+        "enum": [
+         "auto",
+         "sharpest",
+         "even",
+         "best",
+         "all"
+        ],
+        "type": "string"
+       },
+       "count": {
+        "default": 12,
+        "description": "How many panels: number of equal stretches (sharpest, even) or of pictures (\"best\").",
+        "maximum": 500,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "every_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, instead of count: cut the range into stretches of N seconds and take one frame from each (the sharpest; \"even\": the middle one). Times come out irregular; for exactly every N seconds use step_s."
+       },
+       "every_pct": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Instead of count: one stretch every N % of the range."
+       },
+       "step_pct": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Exact positions: one panel every N % of the range, both ends included (25 -> 0, 25, 50, 75 and 100 %)."
+       },
+       "step_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, exact positions: a frame exactly every N seconds from the start of the range (0, N, 2N...), even if it is blurred: add snap_s to move the blurred ones to a sharp frame nearby."
+       },
+       "at_pct": {
+        "anyOf": [
+         {
+          "items": {
+           "maximum": 100,
+           "minimum": 0,
+           "type": "number"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Exact positions in % (0 = first frame or image, 100 = last).",
+        "examples": [
+         [
+          0,
+          50,
+          100
+         ]
+        ]
+       },
+       "at_s": {
+        "anyOf": [
+         {
+          "items": {
+           "minimum": 0,
+           "type": "number"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, exact positions: times in seconds (0.0 = first frame).",
+        "examples": [
+         [
+          1.5,
+          12
+         ]
+        ]
+       },
+       "at_frames": {
+        "anyOf": [
+         {
+          "items": {
+           "minimum": 0,
+           "type": "integer"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video, exact positions: frame numbers (0 = first frame).",
+        "examples": [
+         [
+          0,
+          240
+         ]
+        ]
+       },
+       "at_images": {
+        "anyOf": [
+         {
+          "items": {
+           "minimum": 0,
+           "type": "integer"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images, exact positions: indexes in the input (0 = first image)."
+       },
+       "at_names": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "string"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images, exact positions: file names, e.g. [\"IMG_0042.jpg\"]."
+       },
+       "snap_s": {
+        "default": 0,
+        "description": "Video, exact positions: when the exact frame is clearly blurrier (under 80 %) than the sharpest within ± N seconds, use that one instead; sharp positions stay exact (0.5 suits handheld video).",
+        "maximum": 10,
+        "minimum": 0,
+        "type": "number"
+       },
+       "start_s": {
+        "anyOf": [
+         {
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: only this part, from this second..."
+       },
+       "end_s": {
+        "anyOf": [
+         {
+          "exclusiveMinimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: ... to this second."
+       },
+       "start_pct": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Only this part, from this % (0 = first frame or image) ..."
+       },
+       "end_pct": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "... to this % (100 = last)."
+       },
+       "min_sharpness": {
+        "default": 0,
+        "description": "Never pick a frame or image less sharp than this (typical values: selection.sharpness_stats of an earlier answer).",
+        "minimum": 0,
+        "type": "number"
+       },
+       "drop_blurriest_pct": {
+        "default": 0,
+        "description": "Ignore the blurriest N % of the measured frames or images (30 = keep the sharpest 70 %). The sharpness value this gives is selection.threshold. Sharpness measures edges: a flat picture (plain colours, a logo) scores low without being blurred.",
+        "exclusiveMaximum": 100,
+        "minimum": 0,
+        "type": "number"
+       },
+       "min_gap_s": {
+        "default": 0,
+        "description": "Video: drop a pick closer than N seconds to the previous one.",
+        "minimum": 0,
+        "type": "number"
+       },
+       "min_difference": {
+        "default": 0,
+        "description": "Drop a pick that looks almost the same as the previous one kept (\"best\": as any one kept): mean difference 0-255 of small 64×36 colour copies. 1-2 removes only near-identical pictures, 3 suits small movements on a fixed background, 4-8 removes repeats of a still shot. \"best\" uses 1 unless you set it (0 = only exact repeats).",
+        "maximum": 255,
+        "minimum": 0,
+        "type": "number"
+       },
+       "analysis_width": {
+        "default": 480,
+        "description": "Width in px at which sharpness is measured (bigger = finer and slower).",
+        "maximum": 4096,
+        "minimum": 64,
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "input": {
+      "$ref": "#/$defs/InputSpec"
+     },
+     "select": {
+      "$ref": "#/$defs/SelectSpec"
+     },
+     "output": {
+      "$ref": "#/$defs/FramesOutput"
+     }
+    },
+    "required": [
+     "input"
+    ],
+    "type": "object"
+   },
+   "output_schema": {
+    "$defs": {
+     "Dropped": {
+      "additionalProperties": false,
+      "properties": {
+       "frame": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "image": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "name": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "reason": {
+        "description": "\"min_gap_s\", \"min_difference\" or \"min_sharpness\" (mode \"all\"). Mode \"best\" lists only the repeats it skipped before reaching count, not the pictures below the threshold: use mode \"all\" to list those.",
+        "type": "string"
+       },
+       "similar_to": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "min_difference / min_gap_s: frame or image index of the kept panel it was compared with."
+       },
+       "difference": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "min_difference: the measured difference, 0-255."
+       }
+      },
+      "required": [
+       "reason"
+      ],
+      "type": "object"
+     },
+     "ImageInfo": {
+      "additionalProperties": false,
+      "properties": {
+       "index": {
+        "description": "Position in the input, 0 = first.",
+        "type": "integer"
+       },
+       "path": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       },
+       "format": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "\"JPEG\", \"PNG\", \"HEIF\"..."
+       },
+       "size": {
+        "description": "[width, height] as stored.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "displayed_size": {
+        "description": "[width, height] after the EXIF orientation.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "bytes": {
+        "type": "integer"
+       },
+       "duplicate_of": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Index of an earlier image with exactly the same bytes."
+       }
+      },
+      "required": [
+       "index",
+       "path",
+       "name",
+       "size",
+       "displayed_size",
+       "bytes"
+      ],
+      "type": "object"
+     },
+     "MediaInfoResult": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "enum": [
+         "video",
+         "images"
+        ],
+        "type": "string"
+       },
+       "video": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/VideoInfo"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "count": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: how many."
+       },
+       "folder": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       },
+       "formats": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "integer"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: count per format, e.g. {\"JPEG\": 10}."
+       },
+       "sizes": {
+        "anyOf": [
+         {
+          "items": {
+           "items": {
+            "type": "integer"
+           },
+           "type": "array"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: the different displayed sizes [width, height], most common first."
+       },
+       "images": {
+        "anyOf": [
+         {
+          "items": {
+           "$ref": "#/$defs/ImageInfo"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       }
+      },
+      "required": [
+       "kind"
+      ],
+      "type": "object"
+     },
+     "PanelResult": {
+      "additionalProperties": false,
+      "properties": {
+       "n": {
+        "description": "Order of the panel, 1 = first.",
+        "type": "integer"
+       },
+       "number": {
+        "description": "Number printed on the panel.",
+        "type": "string"
+       },
+       "page": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Page where it is."
+       },
+       "frame": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: frame number."
+       },
+       "time_s": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: seconds from the first frame."
+       },
+       "timecode": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: h:mm:ss.s"
+       },
+       "pct": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Position, 0 = first frame or image, 100 = last."
+       },
+       "image": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: index in the input."
+       },
+       "name": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: file name."
+       },
+       "source": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Images: path of the original image."
+       },
+       "sharpness": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Higher = sharper (variance of the edges)."
+       },
+       "sharpness_pct": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Sharpness as a % of the sharpest panel of this answer (not a percentile)."
+       },
+       "anchor": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "\"first_frame\" / \"last_frame\" on the first / last frame of the video."
+       },
+       "file": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Full-size frame or image copy (output.frames / extract_frames), upright (rotation already applied)."
+       },
+       "size": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "integer"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "[width, height] of file, px."
+       },
+       "notes": {
+        "anyOf": [
+         {
+          "additionalProperties": true,
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "The panel's notes, as given in panels[]."
+       }
+      },
+      "required": [
+       "n",
+       "number"
+      ],
+      "type": "object"
+     },
+     "SelectionResult": {
+      "additionalProperties": false,
+      "properties": {
+       "mode": {
+        "description": "\"sharpest\", \"even\", \"all\", \"positions\" or \"panels\".",
+        "type": "string"
+       },
+       "range_s": {
+        "anyOf": [
+         {
+          "items": {
+           "type": "number"
+          },
+          "type": "array"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Video: [start, end] in seconds."
+       },
+       "range_pct": {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       "measured": {
+        "description": "Frames or images whose sharpness was measured (only these values are comparable with each other).",
+        "type": "integer"
+       },
+       "threshold": {
+        "description": "Frames or images below this sharpness were never picked.",
+        "type": "number"
+       },
+       "sharpness_stats": {
+        "anyOf": [
+         {
+          "additionalProperties": {
+           "type": "number"
+          },
+          "type": "object"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "min, p25, median, p75, max of the measured ones (nearest measured value, not interpolated): use it for min_sharpness."
+       }
+      },
+      "required": [
+       "mode",
+       "range_pct",
+       "measured",
+       "threshold"
+      ],
+      "type": "object"
+     },
+     "VideoInfo": {
+      "additionalProperties": false,
+      "properties": {
+       "path": {
+        "description": "Absolute path of the video.",
+        "type": "string"
+       },
+       "duration_s": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Length in seconds."
+       },
+       "fps": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Frames per second."
+       },
+       "frames": {
+        "anyOf": [
+         {
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "description": "Number of frames; frame numbers go from 0 to frames - 1."
+       },
+       "size": {
+        "description": "[width, height] as stored in the file.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "rotation_deg": {
+        "default": 0,
+        "description": "0, 90, 180 or 270: clockwise turn applied to every picture (phones film sideways).",
+        "type": "integer"
+       },
+       "displayed_size": {
+        "description": "[width, height] after that turn: size of the full frames.",
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       "codec": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null
+       }
+      },
+      "required": [
+       "path",
+       "size",
+       "displayed_size"
+      ],
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "dir": {
+      "type": "string"
+     },
+     "files": {
+      "items": {
+       "$ref": "#/$defs/PanelResult"
+      },
+      "type": "array"
+     },
+     "dropped": {
+      "items": {
+       "$ref": "#/$defs/Dropped"
+      },
+      "type": "array"
+     },
+     "selection": {
+      "$ref": "#/$defs/SelectionResult"
+     },
+     "input": {
+      "$ref": "#/$defs/MediaInfoResult"
+     },
+     "warnings": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "dir",
+     "files",
+     "dropped",
+     "selection",
+     "input"
+    ],
+    "type": "object"
+   },
+   "examples": {
+    "minimal": {
+     "input": {
+      "video": "/Users/ana/Movies/clip.mp4"
+     },
+     "select": {
+      "at_pct": [
+       0,
+       50,
+       100
+      ]
+     }
+    },
+    "full": {
+     "input": {
+      "images": [
+       "/Users/ana/burst/IMG_1.jpg",
+       "/Users/ana/burst/IMG_2.jpg",
+       "/Users/ana/burst/IMG_3.jpg"
+      ]
+     },
+     "select": {
+      "mode": "sharpest",
+      "count": 1
+     },
+     "output": {
+      "dir": "/Users/ana/Desktop/mejor",
+      "format": "original"
+     }
+    }
+   }
+  }
+ }
+}
