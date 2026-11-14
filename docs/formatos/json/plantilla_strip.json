@@ -1,0 +1,137 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/plantilla_strip.png",
+   "size": [
+    1204,
+    448
+   ],
+   "panels": [
+    1,
+    2,
+    3,
+    4
+   ]
+  }
+ ],
+ "panels": [
+  {
+   "n": 1,
+   "number": "1",
+   "page": 1,
+   "frame": 20,
+   "time_s": 0.667,
+   "timecode": "0:00:00.7",
+   "pct": 3.3,
+   "sharpness": 2928.9,
+   "sharpness_pct": 90,
+   "notes": {
+    "shot": "PG",
+    "action": "Amanece sobre la ciudad.",
+    "sound": "Tráfico lejano"
+   }
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "page": 1,
+   "frame": 169,
+   "time_s": 5.633,
+   "timecode": "0:00:05.6",
+   "pct": 28.2,
+   "sharpness": 2940.0,
+   "sharpness_pct": 90,
+   "notes": {
+    "shot": "PM",
+    "camera": "Travelling lateral",
+    "action": "La luz cambia.",
+    "transition": "Corte"
+   }
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "page": 1,
+   "frame": 417,
+   "time_s": 13.9,
+   "timecode": "0:00:13.9",
+   "pct": 69.6,
+   "sharpness": 2948.7,
+   "sharpness_pct": 91,
+   "notes": {
+    "shot": "PP",
+    "dialogue": "VOZ EN OFF: Cada día igual.",
+    "duration_s": 2.5
+   }
+  },
+  {
+   "n": 4,
+   "number": "4",
+   "page": 1,
+   "frame": 599,
+   "time_s": 19.967,
+   "timecode": "0:00:20.0",
+   "pct": 100.0,
+   "sharpness": 3254.5,
+   "sharpness_pct": 100,
+   "anchor": "last_frame"
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "sharpest",
+  "range_s": [
+   0.0,
+   19.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 600,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 125.5,
+   "p25": 149.2,
+   "median": 2797.1,
+   "p75": 2897.5,
+   "max": 3254.5
+  }
+ },
+ "layout": {
+  "template": "strip",
+  "columns": 4,
+  "rows_per_page": 1,
+  "picture_size": [
+   280,
+   158
+  ],
+  "page": "auto",
+  "page_size": [
+   1204,
+   448
+  ],
+  "theme": "dark"
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/ciudad.mp4",
+   "duration_s": 20.0,
+   "fps": 30.0,
+   "frames": 600,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 0,
+   "displayed_size": [
+    640,
+    360
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": []
+}

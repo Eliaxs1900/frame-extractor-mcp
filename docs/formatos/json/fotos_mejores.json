@@ -1,0 +1,170 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/fotos_mejores.png",
+   "size": [
+    1500,
+    550
+   ],
+   "panels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ]
+  }
+ ],
+ "panels": [
+  {
+   "n": 1,
+   "number": "1",
+   "page": 1,
+   "pct": 0.0,
+   "image": 0,
+   "name": "foto_01.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_01.jpg",
+   "sharpness": 1022.7,
+   "sharpness_pct": 92
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "page": 1,
+   "pct": 11.1,
+   "image": 1,
+   "name": "foto_02.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_02.jpg",
+   "sharpness": 1109.3,
+   "sharpness_pct": 100
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "page": 1,
+   "pct": 33.3,
+   "image": 3,
+   "name": "foto_04.png",
+   "source": "/Users/ana/ejemplos/fotos/foto_04.png",
+   "sharpness": 986.4,
+   "sharpness_pct": 89
+  },
+  {
+   "n": 4,
+   "number": "4",
+   "page": 1,
+   "pct": 44.4,
+   "image": 4,
+   "name": "foto_05.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_05.jpg",
+   "sharpness": 976.7,
+   "sharpness_pct": 88
+  },
+  {
+   "n": 5,
+   "number": "5",
+   "page": 1,
+   "pct": 77.8,
+   "image": 7,
+   "name": "foto_07.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_07.jpg",
+   "sharpness": 842.6,
+   "sharpness_pct": 76
+  },
+  {
+   "n": 6,
+   "number": "6",
+   "page": 1,
+   "pct": 88.9,
+   "image": 8,
+   "name": "foto_08.png",
+   "source": "/Users/ana/ejemplos/fotos/foto_08.png",
+   "sharpness": 921.6,
+   "sharpness_pct": 83
+  },
+  {
+   "n": 7,
+   "number": "7",
+   "page": 1,
+   "pct": 100.0,
+   "image": 9,
+   "name": "foto_09_movil.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_09_movil.jpg",
+   "sharpness": 583.8,
+   "sharpness_pct": 53
+  }
+ ],
+ "dropped": [
+  {
+   "image": 2,
+   "name": "foto_03.jpg",
+   "reason": "min_sharpness"
+  },
+  {
+   "image": 5,
+   "name": "foto_05b.jpg",
+   "reason": "min_difference",
+   "similar_to": 4,
+   "difference": 0.01
+  },
+  {
+   "image": 6,
+   "name": "foto_06.jpg",
+   "reason": "min_sharpness"
+  }
+ ],
+ "selection": {
+  "mode": "all",
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 10,
+  "threshold": 583.8,
+  "sharpness_stats": {
+   "min": 189.6,
+   "p25": 583.8,
+   "median": 921.6,
+   "p75": 986.4,
+   "max": 1109.3
+  }
+ },
+ "layout": {
+  "template": "grid",
+  "columns": 5,
+  "rows_per_page": 2,
+  "picture_size": [
+   300,
+   200
+  ],
+  "page": "auto",
+  "page_size": [
+   1500,
+   550
+  ],
+  "theme": "dark"
+ },
+ "input": {
+  "kind": "images",
+  "count": 10,
+  "folder": "/Users/ana/ejemplos/fotos",
+  "formats": {
+   "JPEG": 8,
+   "PNG": 2
+  },
+  "sizes": [
+   [
+    1200,
+    800
+   ],
+   [
+    800,
+    1200
+   ]
+  ]
+ },
+ "warnings": []
+}

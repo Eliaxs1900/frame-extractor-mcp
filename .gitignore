@@ -1,9 +1,11 @@
-__pycache__/
-*.pyc
 .venv/
+.pytest_cache/
 *.mov
 *.mp4
 *.jpg
 *.png
-!docs/*
+!docs/**
+docs/formatos/salidas/
+__pycache__/
+*.pyc
 .DS_Store

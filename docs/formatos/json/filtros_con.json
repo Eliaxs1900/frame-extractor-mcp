@@ -1,0 +1,189 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/filtros_con.png",
+   "size": [
+    1280,
+    416
+   ],
+   "panels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ]
+  }
+ ],
+ "panels": [
+  {
+   "n": 1,
+   "number": "1",
+   "page": 1,
+   "frame": 29,
+   "time_s": 0.967,
+   "timecode": "0:00:01.0",
+   "pct": 4.8,
+   "sharpness": 2898.4,
+   "sharpness_pct": 96
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "page": 1,
+   "frame": 89,
+   "time_s": 2.967,
+   "timecode": "0:00:03.0",
+   "pct": 14.9,
+   "sharpness": 2920.6,
+   "sharpness_pct": 97
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "page": 1,
+   "frame": 149,
+   "time_s": 4.967,
+   "timecode": "0:00:05.0",
+   "pct": 24.9,
+   "sharpness": 2914.4,
+   "sharpness_pct": 97
+  },
+  {
+   "n": 4,
+   "number": "4",
+   "page": 1,
+   "frame": 209,
+   "time_s": 6.967,
+   "timecode": "0:00:07.0",
+   "pct": 34.9,
+   "sharpness": 2855.8,
+   "sharpness_pct": 95
+  },
+  {
+   "n": 5,
+   "number": "5",
+   "page": 1,
+   "frame": 285,
+   "time_s": 9.5,
+   "timecode": "0:00:09.5",
+   "pct": 47.6,
+   "sharpness": 2857.2,
+   "sharpness_pct": 95
+  },
+  {
+   "n": 6,
+   "number": "6",
+   "page": 1,
+   "frame": 329,
+   "time_s": 10.967,
+   "timecode": "0:00:11.0",
+   "pct": 54.9,
+   "sharpness": 2797.1,
+   "sharpness_pct": 93
+  },
+  {
+   "n": 7,
+   "number": "7",
+   "page": 1,
+   "frame": 389,
+   "time_s": 12.967,
+   "timecode": "0:00:13.0",
+   "pct": 64.9,
+   "sharpness": 2885.0,
+   "sharpness_pct": 96
+  },
+  {
+   "n": 8,
+   "number": "8",
+   "page": 1,
+   "frame": 449,
+   "time_s": 14.967,
+   "timecode": "0:00:15.0",
+   "pct": 75.0,
+   "sharpness": 2865.0,
+   "sharpness_pct": 95
+  },
+  {
+   "n": 9,
+   "number": "9",
+   "page": 1,
+   "frame": 509,
+   "time_s": 16.967,
+   "timecode": "0:00:17.0",
+   "pct": 85.0,
+   "sharpness": 3012.1,
+   "sharpness_pct": 100
+  }
+ ],
+ "dropped": [
+  {
+   "frame": 569,
+   "reason": "min_difference",
+   "similar_to": 509,
+   "difference": 4.03
+  }
+ ],
+ "selection": {
+  "mode": "even",
+  "range_s": [
+   0.0,
+   19.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 600,
+  "threshold": 2797.1,
+  "sharpness_stats": {
+   "min": 125.5,
+   "p25": 149.2,
+   "median": 2797.1,
+   "p75": 2897.5,
+   "max": 3254.5
+  }
+ },
+ "layout": {
+  "template": "grid",
+  "columns": 5,
+  "rows_per_page": 2,
+  "picture_size": [
+   256,
+   144
+  ],
+  "page": "auto",
+  "page_size": [
+   1280,
+   416
+  ],
+  "theme": "dark"
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/ciudad.mp4",
+   "duration_s": 20.0,
+   "fps": 30.0,
+   "frames": 600,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 0,
+   "displayed_size": [
+    640,
+    360
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": [
+  "select: 10 panels asked for, 9 given: 1 removed by the filters (see dropped); to get more, lower min_difference (now 6; 2-3 suits a fixed background) or ask for fewer panels"
+ ]
+}

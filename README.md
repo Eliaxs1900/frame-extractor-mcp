@@ -1,38 +1,25 @@
 # storyboard-mcp
 
-Servidor **MCP** (Model Context Protocol) que deja a un asistente como Claude **ver un vídeo**. Resume el vídeo en una **hoja de contactos** (una cuadrícula de fotogramas) y saca los fotogramas que quieras a tamaño completo. Para elegir los fotogramas puede:
-- quedarse con los **más nítidos** de cada tramo;
-- tomarlos **equiespaciados**;
-- tomarlos en **posiciones exactas**, en segundos o en **porcentaje** de la duración. El servidor calcula esas posiciones a partir de la duración del vídeo.
+Servidor **MCP** (Model Context Protocol) que deja a un asistente como Claude **ver un vídeo o una serie de fotos**. Los convierte en **páginas de viñetas**: una hoja de contactos, un storyboard con notas, una lista o una tira, en PNG, JPG o un PDF de varias páginas. Por cada viñeta devuelve un JSON con su fotograma, su tiempo, su nitidez y sus notas.
 
-- Va en un único archivo, [`server.py`](server.py). Se ejecuta con [`uv`](https://docs.astral.sh/uv/), que instala las dependencias solo.
-- **No hace falta ffmpeg**: decodifica con [PyAV](https://pyav.org), que ya trae las librerías de FFmpeg. Para lo demás (por ejemplo, montar un vídeo con imágenes) el repositorio trae su propio [`bin/ffmpeg`](#ffmpeg-incluido-binffmpeg), compilado del código oficial.
-- **Es rápido con películas largas**: en el modo de posiciones salta directamente a cada punto sin decodificar todo. Una hoja de 11 fotogramas de una película de 10,5 min en 1080p tarda unos 2,5 s.
-- Licencia **MIT**.
+![Usos: lo que pides y lo que sale](docs/formatos/fig_usos.png)
 
-### Ejemplo: un fotograma cada 10 % de la película (`step_pct: 10`)
+- **Entrada:** un vídeo, una lista de imágenes o una carpeta. Se elige **exactamente uno** de los tres.
+- **Elige bien los fotogramas:** el **más nítido** de cada tramo, los **N más nítidos** de todo el vídeo o la carpeta, posiciones **exactas** (en segundos, % o nº de fotograma) o las que digas tú viñeta a viñeta. También descarta los **movidos** y los **repetidos**.
+- **Storyboard:** cada viñeta puede llevar notas de plano, cámara, acción, diálogo, sonido, transición y duración. Admite numeración propia (5.1, 12A, SH001), guías de formato (2.39:1, 9:16…), zona segura y tercios. Saca **PDF** en A4, Carta o 16:9, y la **lista de planos** en JSON y CSV.
+- **Todo personalizable:** tema oscuro (negro puro) o claro (blanco puro) y cualquier color, fuente, tamaño o margen. Todo tiene un valor por defecto.
+- **Una estructura JSON común** para todas las herramientas, definida como JSON Schema ([`schema.json`](schema.json)). Un error en los argumentos dice **qué campo** falla, qué se esperaba y qué llegó.
+- Va en un único archivo, [`server.py`](server.py), y se ejecuta con [`uv`](https://docs.astral.sh/uv/), que instala las dependencias solo. **No hace falta ffmpeg:** decodifica con [PyAV](https://pyav.org).
 
-Arriba, los datos del vídeo; abajo, lo que muestra la hoja (las mismas cifras que devuelve el JSON). El servidor calcula las 11 posiciones (0 %, 10 %… 100 %) con la duración. El 0 % es exactamente el **primer fotograma** (#0, 0,0 s) y el 100 % el **último** (#19035 de 19036, 634,5 s). Etiquetas: índice, % y nº de fotograma (`label_fields: ["index", "pct", "frame", "anchor"]`).
-
-![Hoja de contactos con etiquetas](docs/ejemplo_hoja_labels.jpg)
-
-La misma hoja sin etiquetas (`label: false`, o las dos a la vez con `both_versions: true`):
-
-![Hoja de contactos sin etiquetas](docs/ejemplo_hoja_sin_labels.jpg)
-
-Con una plantilla de etiqueta propia (`step_pct: 25`, `label_template: "{index}. {pct}% · fotograma {frame}/{frames_total} · {time_hms} {anchor}"`):
-
-![Hoja de contactos con plantilla de etiqueta](docs/ejemplo_plantilla.jpg)
-
-<sub>*Big Buck Bunny* © 2008 Blender Foundation, [peach.blender.org](https://peach.blender.org), licencia [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Archivo `bbb_sunflower_1080p_30fps_normal.mp4` de [download.blender.org/demo/movies/BBB](https://download.blender.org/demo/movies/BBB/). El primer y el último fotograma de la película son negros.</sub>
+**Guía de formatos de salida, con un ejemplo real de cada uno:** [docs/formatos.md](docs/formatos.md).
 
 ---
 
 ## Cómo se usa (en 3 pasos)
 
-Un **MCP** es un conjunto de herramientas que se conecta a un asistente (Claude Code, Claude Desktop u otro cliente compatible). Una vez instalado **no lo ejecutas tú**: le pides al asistente lo que quieres, en lenguaje normal, y él decide qué herramienta llamar y con qué parámetros.
+Un **MCP** es un conjunto de herramientas que se conecta a un asistente (Claude Code, Claude Desktop u otro cliente compatible). Una vez instalado **no lo ejecutas tú**: le pides al asistente lo que quieres, en lenguaje normal, y él llama a las herramientas.
 
-**1. Instala `uv`** (una sola vez). Es lo que arranca el servidor y le instala sus dependencias:
+**1. Instala `uv`** (una sola vez):
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh        # macOS / Linux
 # Windows (PowerShell): powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -45,120 +32,123 @@ claude mcp add --scope user storyboard -- uv run --script "$PWD/storyboard-mcp/s
 ```
 Con `claude mcp list` deberías ver `storyboard: … ✔ Connected`. Para Claude Desktop y otros clientes, mira [Instalación](#instalación).
 
-**3. Pídeselo al asistente**, indicando la ruta del vídeo:
+**3. Pídeselo al asistente**, con la ruta del vídeo o de las fotos:
 
-> «Mira `~/Movies/viaje.mp4` y hazme una hoja con un fotograma cada 10 %, con índice, porcentaje y número de fotograma.»
+> «Mira `~/Movies/viaje.mp4` y hazme una hoja con 12 fotogramas que no salgan movidos.»
 
-El asistente:
-1. llama a `video_info` para conocer la duración y los fotogramas;
-2. llama a `video_contact_sheet` con `step_pct: 10` y `label_fields: ["index", "pct", "frame"]`;
-3. abre la imagen generada y te describe lo que ve. Si necesitas más detalle, llama a `video_frames` para sacar fotogramas concretos a tamaño completo.
-
-Otras peticiones que entiende:
-
-| Le dices | Lo que hace |
+| Le dices | Lo que llama |
 |---|---|
-| «Resume este vídeo del móvil, que no salgan fotos movidas» | 20 fotogramas, el más nítido de cada tramo, y descarta el 30 % más borroso (`min_sharpness_pct: 30`) |
-| «Uno cada 30 segundos, sin etiquetas y con un poco de separación» | `step_s: 30`, `label: false`, `gap_px: 8` |
-| «Solo del minuto 2 al 3, sin fotogramas repetidos» | `start_s: 120`, `end_s: 180`, `min_difference: 6` |
-| «Hazme las dos versiones, con y sin etiquetas» | `both_versions: true` → `<nombre>_labels.jpg` y `<nombre>_sin_labels.jpg` |
-| «Solo las imágenes, sin la cabecera ni el pie de datos» | `header: false`, `footer: false` |
-| «Dame el primer, el del medio y el último fotograma en grande» | `video_frames` con `positions_pct: [0, 50, 100]` |
-| «El fotograma del minuto 5, el más nítido de alrededor» | `video_frames` con `times_s: [300]`, `sharpest_within_s: 0.5` |
-
-Las imágenes se guardan donde diga el asistente (o donde tú le indiques). La respuesta JSON de cada herramienta trae las rutas exactas y los datos de cada fotograma: número, tiempo, %, nitidez.
-
-> **Sin asistente:** también puedes llamar a las funciones desde Python. Mira [Probar sin cliente MCP](#probar-sin-cliente-mcp).
+| «Resume este vídeo» | `make_storyboard {"input": {"video": "/…/viaje.mp4"}}` |
+| «Uno cada 10 %, con fondo blanco» | `… "select": {"step_pct": 10}, "style": {"theme": "light"}` |
+| «Solo del minuto 2 al 3, sin repetidos» | `… "select": {"start_s": 120, "end_s": 180, "min_difference": 6}` |
+| «Un storyboard en PDF A4 con notas de cada plano» | `… "panels": [{"shot": "PG", "action": "…"}, …], "layout": {"template": "storyboard", "page": "A4"}, "output": {"format": "pdf"}` |
+| «Las fotos de esta carpeta, sin las movidas» | `make_storyboard {"input": {"folder": "/…/fotos"}, "select": {"drop_blurriest_pct": 20}}` |
+| «Copia las 3 mejores fotos de la ráfaga» | `extract_frames {"input": {"folder": "/…/rafaga"}, "select": {"mode": "best", "count": 3}, "output": {"dir": "/…/mejores"}}` |
+| «El fotograma del minuto 5, el más nítido de alrededor, en grande» | `extract_frames {"input": {"video": "/…"}, "select": {"at_s": [300], "snap_s": 0.5}}` |
 
 ---
 
-## Por qué existe
-
-Los modelos no pueden reproducir un vídeo: hay que enseñarles fotogramas. Si los fotogramas se cogen a ciegas, en un vídeo grabado a mano muchos salen **movidos**, y en un plano fijo salen **repetidos**. `storyboard-mcp` lo resuelve:
-- **mide la nitidez** de cada fotograma (varianza de la imagen de bordes) y descarta los borrosos;
-- **detecta los casi iguales**;
-- **calcula él mismo las posiciones** a partir de la duración y del número de fotogramas, para que el asistente pida "uno cada 10 %" o "uno cada 30 s" sin hacer cuentas.
-
-Cada miniatura puede llevar una etiqueta con el número de fotograma, el tiempo, la posición en % y la nitidez. Con eso el asistente pide después los fotogramas que le interesen a resolución completa.
-
-## Tiempos y porcentajes
-
-- **Tiempos:** se miden desde el **primer fotograma**, que siempre es **0,0 s**. Muchos contenedores (MP4/MOV) empiezan con un pequeño desfase; el servidor lo descuenta.
-- **Porcentajes:** van del primer al último fotograma.
-  - **0 %** = primer fotograma (`"anchor": "first_frame"`, etiqueta *primer fotograma*).
-  - **100 %** = último fotograma (`"anchor": "last_frame"`, etiqueta *último fotograma*).
-- **Índices:** van de `0` a `frames − 1`.
-
 ## Herramientas
 
-### `video_info(video_path)`
-Devuelve la duración, los fps, el número de fotogramas, el tamaño, el códec y la rotación (los vídeos de iPhone guardan la rotación en los metadatos).
-
-### `video_contact_sheet(video_path, out_png, …)`
-Genera una cuadrícula con fotogramas del vídeo. Tiene **tres formas de elegir** los fotogramas:
-
-| Modo | Cómo se activa | Qué hace |
-|---|---|---|
-| **Posiciones exactas** | `step_pct`, `step_s`, `positions_pct` o `positions_s` | El servidor calcula las posiciones con la duración y salta a cada una. `step_pct: 10` da 0 %, 10 %… 100 %. |
-| **Más nítido por tramo** (por defecto) | `mode: "sharpest"` | Divide el rango en tramos y coge el fotograma más nítido de cada uno. Ideal para vídeo grabado a mano. |
-| **Equiespaciado** | `mode: "even"` | Divide el rango en tramos y coge el fotograma central de cada uno. |
-
-**Parámetros**
-
-| Grupo | Parámetro | Defecto | Descripción |
+| Herramienta | Qué hace | Escribe | Devuelve |
 |---|---|---|---|
-| Posiciones exactas | `step_pct` | – | Un fotograma cada *N* % del rango, extremos incluidos (10 → 11 fotogramas) |
-| | `step_s` | – | Un fotograma cada *N* segundos (0 s, *N*, 2*N*… hasta el final) |
-| | `positions_pct` | – | Lista de posiciones en %, p. ej. `[0, 50, 100]` |
-| | `positions_s` | – | Lista de tiempos en segundos |
-| | `sharpest_within_s` | 0 | En cada posición, usa el fotograma más nítido a ± *N* s en vez del exacto |
-| Tramos | `count` | 20 | Número de tramos iguales (un fotograma por tramo) |
-| | `interval_s` | – | En vez de `count`: un tramo cada *N* segundos |
-| | `interval_pct` | – | En vez de `count`: un tramo cada *N* % del rango |
-| | `mode` | `"sharpest"` | `"sharpest"` o `"even"` |
-| Rango | `start_s`, `end_s` | todo el vídeo | Parte del vídeo a analizar, en segundos… |
-| | `start_pct`, `end_pct` | – | …o en % de la duración (25 y 75 = la mitad central) |
-| Filtros (modo tramos) | `min_sharpness` | 0 | Nitidez mínima absoluta: nunca coge fotogramas por debajo |
-| | `min_sharpness_pct` | 0 | Nitidez mínima por percentil: 30 = ignora el 30 % más borroso |
-| | `min_gap_s` | 0 | Separación mínima entre dos fotogramas elegidos, en segundos |
-| | `min_difference` | 0 | Descarta un fotograma casi igual al anterior (diferencia media 0-255; con 4-8 se eliminan repeticiones de un plano fijo) |
-| | `analysis_width` | 480 | Ancho al que se mide la nitidez (más ancho = más fino y más lento) |
-| Composición | `columns` | 4 | Columnas de la cuadrícula |
-| | `thumb_width` | 480 | Ancho de cada miniatura, en px |
-| | `gap_px` | 0 | Espacio entre miniaturas y alrededor, en px |
-| | `background` | `#141414` | Color del fondo y del espacio entre miniaturas |
-| | `jpeg_quality` | 90 | Calidad si `out_png` termina en `.jpg` (con `.png` se guarda sin pérdida) |
-| | `header` | `true` | Cabecera con los datos del vídeo: archivo, tamaño, fps, duración, nº de fotogramas y códec |
-| | `footer` | `true` | Pie con lo que muestra la hoja: fotogramas, modo, rango, fotogramas medidos, nitidez mín/mediana/máx, descartados y umbral |
-| | `sharpen` | 0.5 | Enfoque tras reducir cada fotograma a miniatura (0 = sin enfoque, 1 = fuerte): las miniaturas no quedan blandas |
-| Etiquetas | `label` | `true` | Con o sin etiqueta en cada miniatura |
-| | `label_fields` | `["frame","time","sharpness","anchor"]` | Campos y orden: `index` (1., 2., 3.… posición en la hoja), `frame` (#123, nº de fotograma), `time` (63.5s), `pct` (10%), `sharpness` (valor), `sharpness_pct` (% respecto al más nítido elegido), `anchor` (*primer/último fotograma*) |
-| | `label_template` | – | Texto libre en vez de `label_fields`, p. ej. `"{index}. {pct}% · fotograma {frame}/{frames_total} · {time_hms}"`. Variables: `{index}` `{frame}` `{frames_total}` `{time}` `{time_hms}` `{pct}` `{pct1}` `{sharpness}` `{sharpness_pct}` `{anchor}` |
-| | `label_size` | automático | Tamaño de letra, en px |
-| | `both_versions` | `false` | Guarda las dos versiones: `<nombre>_labels` y `<nombre>_sin_labels` |
-| Salida | `save_frames_dir` | – | Guarda también los fotogramas elegidos a tamaño completo (`f<n>.jpg`) |
+| `media_info` | Dice qué es la entrada: duración, fps, nº de fotogramas, tamaño y rotación del vídeo, o nombre, formato y tamaño de cada imagen. Es rápida. | nada | JSON |
+| `make_storyboard` | Páginas de viñetas: `grid`, `storyboard`, `list` o `strip`. | PNG, JPG o PDF; opcionalmente, la lista de planos (JSON, CSV) y los fotogramas a tamaño completo | JSON con las rutas y una entrada por viñeta, más una **vista previa** de la página 1 |
+| `extract_frames` | Fotogramas elegidos a tamaño completo, o copias de las imágenes elegidas. | `f00042.jpg`… o `001_<nombre>` | JSON con las rutas |
+| `get_schema` | El JSON Schema de todo, con un ejemplo mínimo y uno completo de cada herramienta. También como recurso MCP `storyboard://schema`. | nada | JSON |
 
-**Qué devuelve (JSON)**
-- Las rutas de las imágenes.
-- Por cada fotograma elegido: `frame`, `time_s`, `pct`, `sharpness`, `sharpness_pct` y, si toca, `anchor`.
-- Los descartados y el motivo.
-- El rango usado, en segundos y en %.
-- Las estadísticas de nitidez del vídeo (mín., p25, mediana, p75, máx.), útiles para ajustar `min_sharpness`.
+Cada respuesta es un JSON: va como texto y también como `structuredContent`, que sigue el `outputSchema` de la herramienta. Las rutas son **absolutas**. Sin `output.dir`, los archivos van a una carpeta temporal (`<temp>/storyboard-mcp/<nombre de la entrada>/`), cuya ruta viene en la respuesta.
 
-### `video_frames(video_path, out_dir, …)`
-Guarda fotogramas concretos a tamaño completo (JPEG).
+### Lo que devuelve
 
-| Parámetro | Descripción |
+La llamada mínima, `{"input": {"video": "…"}}`, da esta hoja. La viñeta *n* es el elemento *n* de `panels` en el JSON, con su fotograma, su tiempo y su nitidez:
+
+![La hoja de contactos y sus partes](docs/formatos/fig_minimo.png)
+
+### Plantillas
+
+`layout.template` decide la página: `grid` (por defecto), `storyboard`, `list` o `strip`. Las notas de cada viñeta salen de `panels[]`:
+
+![Las cuatro plantillas de página](docs/formatos/fig_plantillas.png)
+
+### Fotos en vez de vídeo
+
+Con `input.images` (una lista) o `input.folder` (una carpeta) se hace lo mismo, con el orden de la lista en lugar del tiempo. Las fotos del móvil se giran según su orientación EXIF. Y `"mode": "best"` se queda con las más nítidas sin repetir ninguna:
+
+![Entrada de imágenes](docs/formatos/fig_imagenes.png)
+
+## La estructura JSON común
+
+Todas las herramientas reciben las mismas secciones. **Solo `input` es obligatoria**: `{"input": {"video": "/ruta/clip.mp4"}}` ya funciona con los valores por defecto. Una clave desconocida da error (con sugerencia si es una errata), nunca se ignora sin avisar.
+
+| Sección | Para qué | Campos principales (valor por defecto) |
+|---|---|---|
+| `input` | Qué mirar: **exactamente uno** de `video`, `images` o `folder` | `video` (ruta) · `images` (lista de rutas, 1–1000) · `folder` (ruta: todas las imágenes) + `pattern` (opcional, p. ej. `"*.jpg"`; sin distinguir mayúsculas) |
+| `select` | Qué fotogramas o imágenes son viñetas | `mode`: `sharpest` (el más nítido de cada tramo), `even` (el del centro), `best` (los N más nítidos), `all` (todos); `auto` es `sharpest` en vídeo y, en imágenes, `all` (o `sharpest` si das `count`) · `count` (12) · `every_s` / `every_pct` · posiciones exactas: `step_pct`, `step_s`, `at_pct`, `at_s`, `at_frames`, `at_images`, `at_names` · `snap_s` (0) · rango: `start_s`, `end_s`, `start_pct`, `end_pct` · filtros: `min_sharpness`, `drop_blurriest_pct`, `min_gap_s`, `min_difference` |
+| `panels` | Notas por viñeta, en orden (o con posición propia) | `shot`, `camera`, `action`, `dialogue`, `sound`, `transition`, `duration_s`, `number`; posición: `frame`, `at_s`, `at_pct`, `image`, `image_name` |
+| `layout` | Cómo se colocan | `template` (`grid`) · `columns` (grid 4, storyboard 3) · `rows` · `page` (`auto`, `A4`, `Letter`, `16:9`) · `orientation` · `panel_width` (480) · `aspect` (`source`) · `fit` · `margin`, `gap`, `padding` · `header`, `title`, `subtitle`, `footer`, `footer_text` · `label`, `numbering`, `notes`, `guides` · `language` (`es`, `en`) |
+| `style` | Colores, fuentes y tamaños | `theme` (`dark`: fondo `#000000`; `light`: `#ffffff`) · `background`, `text`, `text_secondary`, `accent`, `label_background`, `label_text`, `panel_border`, `border_width`, `notes_background`, `notes_text`, `notes_rule`, `guides` · `font`, `font_bold` · `title_size`, `text_size`, `label_size`, `number_size`, `notes_size` · `sharpen` (0.5) |
+| `output` | Dónde y cómo se guarda | `dir` (temporal) · `name` (`<entrada>_<plantilla>`) · `format` (`png`, `jpg`, `pdf`; `webp`, `gif`, `mp4` y `webm`, previstos) · `quality` (90) · `dpi` (150) · `shot_list` (`["json", "csv"]`) · `csv_style` (`standard`; `excel_es` para Excel en español) · `frames` · `also_without_labels` · `preview` (true). En `extract_frames`: `dir`, `format` y `names` (`numbered` o `original`) |
+
+- **Posiciones:** los fotogramas van de 0 a `frames − 1`. Los segundos cuentan desde el primer fotograma (0,0 s). En %, 0 es el primer fotograma o la primera imagen y 100 el último. Las imágenes se indican por índice (0…) o por nombre de archivo.
+- **Colores:** `#RRGGBB`, `#RRGGBBAA` (con transparencia), `#RGB`, `#RGBA` o un nombre CSS (`"white"`). Los valores de lista (`"PDF"`, `"a4"`, `"Storyboard"`) valen en mayúsculas o minúsculas.
+- **Avisos:** si salen menos viñetas de las pedidas, o se ignora algún campo, `warnings` dice por qué.
+- **Errores:** todos a la vez, cada uno con su ruta. Por ejemplo:
+  ```
+  make_storyboard: 2 problems in the arguments:
+  - layout.colums: unknown field "colums". Did you mean "columns"? Allowed here: template, columns, rows, …
+  - style.background: "#12" is not a valid colour; use #RRGGBB or #RRGGBBAA (also #RGB, #RGBA) or a CSS colour name such as "white", "black" or "navy"
+  ```
+
+Un ejemplo completo: un storyboard en PDF con notas, numeración de escena, guía de 2.39:1, tema claro y la lista de planos.
+```json
+{
+  "input": {"video": "/Users/ana/Movies/clip.mp4"},
+  "select": {"at_s": [1.5, 6, 12.5, 20], "snap_s": 0.5},
+  "panels": [
+    {"shot": "PG", "camera": "fijo", "action": "Amanece sobre la ciudad.", "sound": "tráfico lejano"},
+    {"shot": "PM", "camera": "travelling lateral", "action": "Ana cruza la calle.", "dialogue": "ANA: Llego tarde.", "transition": "corte"},
+    {"number": "2A", "shot": "PP", "action": "Mira el reloj.", "duration_s": 2.5},
+    {"shot": "PG", "camera": "grúa ascendente", "transition": "fundido a negro"}
+  ],
+  "layout": {"template": "storyboard", "columns": 2, "page": "A4", "numbering": {"format": "5.{n}"},
+             "label": {"fields": ["timecode", "frame"]}, "guides": {"aspects": ["2.39:1"]}, "title": "Escena 5 — La calle"},
+  "style": {"theme": "light", "accent": "#c2410c", "font": "Helvetica"},
+  "output": {"dir": "/Users/ana/Desktop/storyboard", "name": "escena5", "format": "pdf", "shot_list": ["json", "csv"]}
+}
+```
+
+Ese tipo de llamada da un PDF de varias páginas como este, más la lista de planos:
+
+![Storyboard en PDF](docs/formatos/fig_pdf.png)
+
+Todo lo visual se puede cambiar. Lo que no se da sale del tema, oscuro (negro puro) o claro (blanco puro):
+
+![Temas oscuro, claro y personalizado](docs/formatos/fig_temas.png)
+
+La referencia completa de cada campo, con sus tipos, límites y valores por defecto, está en [`schema.json`](schema.json) y en la herramienta `get_schema`. Lo que devuelve cada herramienta, con imágenes, está en [docs/formatos.md](docs/formatos.md).
+
+## Cambios respecto a la versión 1 (frame-extractor)
+
+La versión 2 cambia los nombres y la forma de los argumentos para unificar vídeo e imágenes. Es un MCP propio, sin usuarios externos, así que no hay capa de compatibilidad.
+
+| Versión 1 | Versión 2 |
 |---|---|
-| `frames` | Números de fotograma |
-| `times_s` | Tiempos en segundos |
-| `positions_pct` | Posiciones en % (0 = primer fotograma, 100 = último) |
-| `sharpest_within_s` | Cambia cada fotograma por el más nítido a ± *N* s |
-| `jpeg_quality` | 95 por defecto |
+| `video_info(video_path)` | `media_info {"input": {"video": …}}` |
+| `video_contact_sheet(video_path, out_png, …)` | `make_storyboard {"input": …, "output": {"dir", "name", "format"}}` |
+| `video_frames(video_path, out_dir, frames / times_s / positions_pct)` | `extract_frames {"select": {"at_frames" / "at_s" / "at_pct"}, "output": {"dir"}}` |
+| `count`, `mode`, `step_pct`, `step_s`, `start_s`, `end_s`, `min_*` | iguales, dentro de `select` |
+| `interval_s`, `interval_pct` | `select.every_s`, `select.every_pct` |
+| `positions_pct`, `positions_s`, `sharpest_within_s` | `select.at_pct`, `select.at_s`, `select.snap_s` |
+| `columns`, `thumb_width`, `gap_px`, `header`, `footer` | `layout.columns`, `layout.panel_width`, `layout.gap`, `layout.header`, `layout.footer` |
+| `label`, `label_fields`, `label_template` (`{index}`, `{time_hms}`) | `layout.label.show`, `.fields`, `.template` (`{number}`, `{timecode}`) |
+| `background`, `label_size`, `sharpen` | `style.background`, `style.label_size`, `style.sharpen` |
+| `both_versions`, `save_frames_dir`, `jpeg_quality` | `output.also_without_labels`, `output.frames`, `output.quality` |
+| Respuesta `images: {con_labels, sin_labels}`, `frames[]` | `pages[]` (y `pages_without_labels`), `panels[]` |
 
 ## Instalación
 
-Requisitos: macOS, Linux o Windows con [`uv`](https://docs.astral.sh/uv/getting-started/installation/). La primera ejecución descarga `mcp`, `av` y `pillow` en un entorno aislado.
+Requisitos: macOS, Linux o Windows con [`uv`](https://docs.astral.sh/uv/getting-started/installation/). La primera ejecución descarga `mcp`, `av`, `pillow`, `pillow-heif` (fotos HEIC del iPhone) y `pydantic` en un entorno aislado.
 
 ```bash
 git clone https://github.com/Eliaxs1900/storyboard-mcp.git
@@ -178,49 +168,30 @@ claude mcp add --scope user storyboard -- uv run --script /RUTA/A/storyboard-mcp
 }
 ```
 
-## Ejemplos de uso
+## Probar sin cliente MCP, pruebas y esquema
 
-| Lo que pides | Llamada |
-|---|---|
-| "Un fotograma cada 10 % de la película, con índice, % y nº de fotograma" | `video_contact_sheet({video_path, out_png, step_pct: 10, label_fields: ["index","pct","frame"]})` |
-| "Lo mismo con mi propio formato de etiqueta" | `video_contact_sheet({video_path, out_png, step_pct: 25, label_template: "{index}. {pct}% · fotograma {frame}/{frames_total} · {time_hms}"})` |
-| "Resume este vídeo del móvil con fotos que no salgan movidas" | `video_contact_sheet({video_path, out_png, count: 20, min_sharpness_pct: 30})` |
-| "Un fotograma cada 30 s, sin etiquetas y con separación" | `video_contact_sheet({video_path, out_png, step_s: 30, label: false, gap_px: 8})` |
-| "Solo del minuto 2 al 3, sin repetidos" | `video_contact_sheet({video_path, out_png, start_s: 120, end_s: 180, min_difference: 6})` |
-| "Primer, central y último fotograma a tamaño completo" | `video_frames({video_path, out_dir, positions_pct: [0, 50, 100]})` |
-
-## Reproducir las imágenes de ejemplo
-
+`server.py` también se puede importar: `run_tool` valida los argumentos y ejecuta la herramienta igual que por MCP.
 ```bash
-curl -LO https://download.blender.org/demo/movies/BBB/bbb_sunflower_1080p_30fps_normal.mp4.zip && unzip bbb_sunflower_1080p_30fps_normal.mp4.zip
-```
-Después:
-```
-video_contact_sheet({"video_path": "bbb_sunflower_1080p_30fps_normal.mp4", "out_png": "docs/ejemplo_hoja.jpg",
-                     "step_pct": 10, "columns": 4, "thumb_width": 400, "gap_px": 6,
-                     "label_fields": ["index", "pct", "frame", "anchor"], "both_versions": true})
-```
-
-## Probar sin cliente MCP
-
-`server.py` también se puede importar como módulo normal:
-```bash
-uv run --with "mcp>=1.2,<2" --with av --with pillow python -c "
+uv run --with "mcp>=1.10,<2" --with av --with pillow --with pillow-heif python -c "
 import importlib.util as u; s=u.spec_from_file_location('s','server.py'); m=u.module_from_spec(s); s.loader.exec_module(m)
-print(m.video_info('mi_video.mp4'))
-print(m.video_contact_sheet('mi_video.mp4', 'hoja.jpg', step_pct=10))"
+print(m.run_tool('make_storyboard', {'input': {'video': 'mi_video.mp4'}})[0]['pages'])"
 ```
+
+- **Pruebas** (con vídeo e imágenes generados): `uv run --script tests/test_server.py`
+- **Regenerar `schema.json`** (las pruebas avisan si no coincide con el código): `uv run --script server.py --schema > schema.json`
+- **Regenerar las figuras y los JSON de la guía:** `uv run --script docs/generar_ejemplos.py`
 
 ## Notas
 
-- **Memoria:** el modo por tramos hace dos pasadas. La primera solo guarda medidas y miniaturas de 32×18; la segunda extrae los fotogramas elegidos. Nunca carga el vídeo entero en memoria.
-- **Índice de fotograma:** en el modo de posiciones exactas se calcula a partir del tiempo (tiempo × fps). El primer fotograma es siempre el #0 y el último, el `frames − 1`.
-- **Etiquetas largas:** si el texto no cabe en la miniatura, la letra se reduce y, si aun así no cabe, se corta con «…». Nunca invade la miniatura de al lado.
-- **Problema conocido:** si ejecutas el servidor desde una carpeta con archivos que se llamen como módulos estándar de Python (`inspect.py`, `json.py`…), la importación de PyAV puede fallar o cerrar el proceso. Usa la ruta absoluta de `server.py`, como en los ejemplos.
+- **Memoria:** el modo por tramos mide todos los fotogramas del rango con copias pequeñas y guarda solo los elegidos, ya reducidos al tamaño de la viñeta. Las posiciones exactas saltan a cada punto sin decodificar todo el vídeo, así que son el modo rápido en películas largas.
+- **Rotación:** los vídeos de móvil guardan un giro en el archivo y las fotos, la orientación EXIF. Las imágenes salen tal como se grabaron: `rotation_deg` y `displayed_size` lo indican.
+- **Límites:** 1000 imágenes por entrada, 500 viñetas y 200 páginas por llamada, y 150 Mpx por página. Si se superan, el error dice cómo repartirlo (`layout.rows`, `count`…).
+- **PDF:** las páginas se guardan como imagen dentro del PDF, así que el texto no se puede seleccionar.
+- **Problema conocido:** si ejecutas el servidor desde una carpeta con archivos que se llamen como módulos estándar de Python (`inspect.py`, `json.py`…), la importación de PyAV puede fallar. Usa la ruta absoluta de `server.py`, como en los ejemplos.
 
 ## ffmpeg incluido (`bin/ffmpeg`)
 
-El repositorio trae una copia de la herramienta `ffmpeg`, para que no tengas que instalarla: un ejecutable para Mac con Apple Silicon (macOS 13 o posterior) que solo usa librerías del propio macOS.
+El repositorio trae una copia de la herramienta `ffmpeg`, para que no tengas que instalarla: un ejecutable para Mac con Apple Silicon (macOS 13 o posterior) que solo usa librerías del propio macOS. El servidor no la necesita para leer vídeos (usa PyAV); sirve para todo lo demás.
 
 - **De dónde sale:** compilado sin cambios del código oficial de FFmpeg ([github.com/FFmpeg/FFmpeg](https://github.com/FFmpeg/FFmpeg), versión `n9.0.2`) con [`build-ffmpeg.sh`](build-ffmpeg.sh). La versión, el commit, las opciones de compilación y el SHA-256 están en [`bin/LICENSE-ffmpeg.md`](bin/LICENSE-ffmpeg.md).
 - **Licencia:** LGPL 2.1 o posterior (sin partes GPL ni «nonfree»), texto en [`bin/COPYING.LGPLv2.1`](bin/COPYING.LGPLv2.1).
@@ -236,4 +207,4 @@ uv run --script server.py --is-ffmpeg-updated
 
 ## Licencia
 
-Código: [MIT](LICENSE). `bin/ffmpeg` es FFmpeg, bajo LGPL 2.1 o posterior ([detalles](bin/LICENSE-ffmpeg.md)). Las imágenes de ejemplo de `docs/` salen de *Big Buck Bunny* (© Blender Foundation, CC BY 3.0).
+Código: [MIT](LICENSE). `bin/ffmpeg` es FFmpeg, bajo LGPL 2.1 o posterior ([detalles](bin/LICENSE-ffmpeg.md)). Las imágenes de [`docs/`](docs/) salen de un vídeo y unas fotos sintéticos que crea [`docs/generar_ejemplos.py`](docs/generar_ejemplos.py).

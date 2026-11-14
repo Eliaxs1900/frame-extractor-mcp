@@ -1,0 +1,19 @@
+{
+ "kind": "video",
+ "video": {
+  "path": "/Users/ana/ejemplos/ciudad.mp4",
+  "duration_s": 20.0,
+  "fps": 30.0,
+  "frames": 600,
+  "size": [
+   640,
+   360
+  ],
+  "rotation_deg": 0,
+  "displayed_size": [
+   640,
+   360
+  ],
+  "codec": "mpeg4"
+ }
+}

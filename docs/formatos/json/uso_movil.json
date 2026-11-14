@@ -1,0 +1,120 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/uso_movil.png",
+   "size": [
+    884,
+    542
+   ],
+   "panels": [
+    1,
+    2,
+    3,
+    4
+   ]
+  }
+ ],
+ "panels": [
+  {
+   "n": 1,
+   "number": "1",
+   "page": 1,
+   "frame": 10,
+   "time_s": 0.333,
+   "timecode": "0:00:00.3",
+   "pct": 11.2,
+   "sharpness": 1158.8,
+   "sharpness_pct": 100
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "page": 1,
+   "frame": 38,
+   "time_s": 1.267,
+   "timecode": "0:00:01.3",
+   "pct": 42.7,
+   "sharpness": 1156.0,
+   "sharpness_pct": 99
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "page": 1,
+   "frame": 60,
+   "time_s": 2.0,
+   "timecode": "0:00:02.0",
+   "pct": 67.4,
+   "sharpness": 1161.2,
+   "sharpness_pct": 100
+  },
+  {
+   "n": 4,
+   "number": "4",
+   "page": 1,
+   "frame": 88,
+   "time_s": 2.933,
+   "timecode": "0:00:02.9",
+   "pct": 98.9,
+   "sharpness": 1163.3,
+   "sharpness_pct": 100
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "sharpest",
+  "range_s": [
+   0.0,
+   2.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 90,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 1104.4,
+   "p25": 1137.2,
+   "median": 1144.7,
+   "p75": 1153.8,
+   "max": 1163.3
+  }
+ },
+ "layout": {
+  "template": "strip",
+  "columns": 4,
+  "rows_per_page": 1,
+  "picture_size": [
+   200,
+   356
+  ],
+  "page": "auto",
+  "page_size": [
+   884,
+   542
+  ],
+  "theme": "dark"
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/movil.mp4",
+   "duration_s": 3.0,
+   "fps": 30.0,
+   "frames": 90,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 90,
+   "displayed_size": [
+    360,
+    640
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": []
+}

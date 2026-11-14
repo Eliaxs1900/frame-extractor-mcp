@@ -1,0 +1,87 @@
+{
+ "dir": "/Users/ana/ejemplos/mejores",
+ "files": [
+  {
+   "n": 1,
+   "number": "1",
+   "pct": 0.0,
+   "image": 0,
+   "name": "foto_01.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_01.jpg",
+   "sharpness": 1022.7,
+   "sharpness_pct": 92,
+   "file": "/Users/ana/ejemplos/mejores/foto_01.jpg",
+   "size": [
+    1200,
+    800
+   ]
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "pct": 11.1,
+   "image": 1,
+   "name": "foto_02.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_02.jpg",
+   "sharpness": 1109.3,
+   "sharpness_pct": 100,
+   "file": "/Users/ana/ejemplos/mejores/foto_02.jpg",
+   "size": [
+    1200,
+    800
+   ]
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "pct": 33.3,
+   "image": 3,
+   "name": "foto_04.png",
+   "source": "/Users/ana/ejemplos/fotos/foto_04.png",
+   "sharpness": 986.4,
+   "sharpness_pct": 89,
+   "file": "/Users/ana/ejemplos/mejores/foto_04.png",
+   "size": [
+    1200,
+    800
+   ]
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "best",
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 10,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 189.6,
+   "p25": 583.8,
+   "median": 921.6,
+   "p75": 986.4,
+   "max": 1109.3
+  }
+ },
+ "input": {
+  "kind": "images",
+  "count": 10,
+  "folder": "/Users/ana/ejemplos/fotos",
+  "formats": {
+   "JPEG": 8,
+   "PNG": 2
+  },
+  "sizes": [
+   [
+    1200,
+    800
+   ],
+   [
+    800,
+    1200
+   ]
+  ]
+ },
+ "warnings": []
+}

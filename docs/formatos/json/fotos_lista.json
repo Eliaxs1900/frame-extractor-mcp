@@ -1,0 +1,97 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/fotos_lista.png",
+   "size": [
+    780,
+    682
+   ],
+   "panels": [
+    1,
+    2
+   ]
+  }
+ ],
+ "panels": [
+  {
+   "n": 1,
+   "number": "1",
+   "page": 1,
+   "pct": 0.0,
+   "image": 0,
+   "name": "foto_01.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_01.jpg",
+   "sharpness": 1022.7,
+   "sharpness_pct": 100,
+   "notes": {
+    "action": "Paisaje del día 1."
+   }
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "page": 1,
+   "pct": 100.0,
+   "image": 1,
+   "name": "foto_09_movil.jpg",
+   "source": "/Users/ana/ejemplos/fotos/foto_09_movil.jpg",
+   "sharpness": 583.8,
+   "sharpness_pct": 57,
+   "notes": {
+    "action": "Foto vertical del móvil: se gira sola (EXIF)."
+   }
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "all",
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 2,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 583.8,
+   "p25": 583.8,
+   "median": 583.8,
+   "p75": 1022.7,
+   "max": 1022.7
+  }
+ },
+ "layout": {
+  "template": "list",
+  "columns": 1,
+  "rows_per_page": 2,
+  "picture_size": [
+   300,
+   200
+  ],
+  "page": "auto",
+  "page_size": [
+   780,
+   682
+  ],
+  "theme": "light"
+ },
+ "input": {
+  "kind": "images",
+  "count": 2,
+  "folder": "/Users/ana/ejemplos/fotos",
+  "formats": {
+   "JPEG": 2
+  },
+  "sizes": [
+   [
+    1200,
+    800
+   ],
+   [
+    800,
+    1200
+   ]
+  ]
+ },
+ "warnings": []
+}

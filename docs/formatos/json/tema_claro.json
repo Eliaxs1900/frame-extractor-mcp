@@ -1,0 +1,124 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/tema_claro.png",
+   "size": [
+    1112,
+    580
+   ],
+   "panels": [
+    1,
+    2,
+    3
+   ]
+  }
+ ],
+ "panels": [
+  {
+   "n": 1,
+   "number": "1",
+   "page": 1,
+   "frame": 75,
+   "time_s": 2.5,
+   "timecode": "0:00:02.5",
+   "pct": 12.5,
+   "sharpness": 2851.4,
+   "sharpness_pct": 97,
+   "notes": {
+    "shot": "PG",
+    "action": "Amanece sobre la ciudad.",
+    "sound": "Tráfico lejano"
+   }
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "page": 1,
+   "frame": 285,
+   "time_s": 9.5,
+   "timecode": "0:00:09.5",
+   "pct": 47.6,
+   "sharpness": 2857.2,
+   "sharpness_pct": 97,
+   "notes": {
+    "shot": "PM",
+    "camera": "Travelling lateral",
+    "action": "La luz cambia.",
+    "transition": "Corte"
+   }
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "page": 1,
+   "frame": 465,
+   "time_s": 15.5,
+   "timecode": "0:00:15.5",
+   "pct": 77.6,
+   "sharpness": 2942.1,
+   "sharpness_pct": 100,
+   "notes": {
+    "shot": "PP",
+    "dialogue": "VOZ EN OFF: Cada día igual.",
+    "duration_s": 2.5
+   }
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "positions",
+  "range_s": [
+   0.0,
+   19.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 3,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 2851.4,
+   "p25": 2851.4,
+   "median": 2857.2,
+   "p75": 2942.1,
+   "max": 2942.1
+  }
+ },
+ "layout": {
+  "template": "storyboard",
+  "columns": 3,
+  "rows_per_page": 1,
+  "picture_size": [
+   320,
+   180
+  ],
+  "page": "auto",
+  "page_size": [
+   1112,
+   580
+  ],
+  "theme": "light"
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/ciudad.mp4",
+   "duration_s": 20.0,
+   "fps": 30.0,
+   "frames": 600,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 0,
+   "displayed_size": [
+    640,
+    360
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": []
+}

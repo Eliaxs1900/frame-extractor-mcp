@@ -1,0 +1,171 @@
+{
+ "kind": "images",
+ "count": 10,
+ "folder": "/Users/ana/ejemplos/fotos",
+ "formats": {
+  "JPEG": 8,
+  "PNG": 2
+ },
+ "sizes": [
+  [
+   1200,
+   800
+  ],
+  [
+   800,
+   1200
+  ]
+ ],
+ "images": [
+  {
+   "index": 0,
+   "path": "/Users/ana/ejemplos/fotos/foto_01.jpg",
+   "name": "foto_01.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 40703
+  },
+  {
+   "index": 1,
+   "path": "/Users/ana/ejemplos/fotos/foto_02.jpg",
+   "name": "foto_02.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 41516
+  },
+  {
+   "index": 2,
+   "path": "/Users/ana/ejemplos/fotos/foto_03.jpg",
+   "name": "foto_03.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 34655
+  },
+  {
+   "index": 3,
+   "path": "/Users/ana/ejemplos/fotos/foto_04.png",
+   "name": "foto_04.png",
+   "format": "PNG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 15145
+  },
+  {
+   "index": 4,
+   "path": "/Users/ana/ejemplos/fotos/foto_05.jpg",
+   "name": "foto_05.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 42219
+  },
+  {
+   "index": 5,
+   "path": "/Users/ana/ejemplos/fotos/foto_05b.jpg",
+   "name": "foto_05b.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 39918
+  },
+  {
+   "index": 6,
+   "path": "/Users/ana/ejemplos/fotos/foto_06.jpg",
+   "name": "foto_06.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 33863
+  },
+  {
+   "index": 7,
+   "path": "/Users/ana/ejemplos/fotos/foto_07.jpg",
+   "name": "foto_07.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 42080
+  },
+  {
+   "index": 8,
+   "path": "/Users/ana/ejemplos/fotos/foto_08.png",
+   "name": "foto_08.png",
+   "format": "PNG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    1200,
+    800
+   ],
+   "bytes": 18089
+  },
+  {
+   "index": 9,
+   "path": "/Users/ana/ejemplos/fotos/foto_09_movil.jpg",
+   "name": "foto_09_movil.jpg",
+   "format": "JPEG",
+   "size": [
+    1200,
+    800
+   ],
+   "displayed_size": [
+    800,
+    1200
+   ],
+   "bytes": 39729
+  }
+ ]
+}

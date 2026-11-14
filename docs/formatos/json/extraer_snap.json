@@ -1,0 +1,61 @@
+{
+ "dir": "/Users/ana/ejemplos/extraer_snap",
+ "files": [
+  {
+   "n": 1,
+   "number": "1",
+   "frame": 89,
+   "time_s": 2.967,
+   "timecode": "0:00:03.0",
+   "pct": 14.9,
+   "sharpness": 2920.6,
+   "sharpness_pct": 100,
+   "file": "/Users/ana/ejemplos/extraer_snap/f00089.jpg",
+   "size": [
+    640,
+    360
+   ]
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "positions",
+  "range_s": [
+   0.0,
+   19.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 31,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 132.8,
+   "p25": 135.5,
+   "median": 2832.2,
+   "p75": 2888.5,
+   "max": 2920.6
+  }
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/ciudad.mp4",
+   "duration_s": 20.0,
+   "fps": 30.0,
+   "frames": 600,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 0,
+   "displayed_size": [
+    640,
+    360
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": []
+}

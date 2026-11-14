@@ -1,0 +1,95 @@
+{
+ "dir": "/Users/ana/ejemplos/extraer",
+ "files": [
+  {
+   "n": 1,
+   "number": "1",
+   "frame": 0,
+   "time_s": 0.0,
+   "timecode": "0:00:00.0",
+   "pct": 0.0,
+   "sharpness": 148.8,
+   "sharpness_pct": 5,
+   "anchor": "first_frame",
+   "file": "/Users/ana/ejemplos/extraer/f00000.jpg",
+   "size": [
+    640,
+    360
+   ]
+  },
+  {
+   "n": 2,
+   "number": "2",
+   "frame": 299,
+   "time_s": 9.967,
+   "timecode": "0:00:10.0",
+   "pct": 49.9,
+   "sharpness": 2846.9,
+   "sharpness_pct": 87,
+   "file": "/Users/ana/ejemplos/extraer/f00299.jpg",
+   "size": [
+    640,
+    360
+   ]
+  },
+  {
+   "n": 3,
+   "number": "3",
+   "frame": 599,
+   "time_s": 19.967,
+   "timecode": "0:00:20.0",
+   "pct": 100.0,
+   "sharpness": 3254.5,
+   "sharpness_pct": 100,
+   "anchor": "last_frame",
+   "file": "/Users/ana/ejemplos/extraer/f00599.jpg",
+   "size": [
+    640,
+    360
+   ]
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "positions",
+  "range_s": [
+   0.0,
+   19.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 3,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 148.8,
+   "p25": 148.8,
+   "median": 2846.9,
+   "p75": 3254.5,
+   "max": 3254.5
+  }
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/ciudad.mp4",
+   "duration_s": 20.0,
+   "fps": 30.0,
+   "frames": 600,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 0,
+   "displayed_size": [
+    640,
+    360
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": [
+  "select: panel(s) 1 look blurred (sharpness under half the sharpest panel's); add snap_s (e.g. 0.5) to use a sharp frame nearby, or move the positions (start_s)"
+ ]
+}

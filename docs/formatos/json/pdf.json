@@ -1,0 +1,196 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "path": "/Users/ana/ejemplos/pdf.pdf",
+   "size": [
+    1754,
+    1240
+   ],
+   "panels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  {
+   "page": 2,
+   "path": "/Users/ana/ejemplos/pdf.pdf",
+   "size": [
+    1754,
+    1240
+   ],
+   "panels": [
+    7,
+    8
+   ]
+  }
+ ],
+ "pdf": "/Users/ana/ejemplos/pdf.pdf",
+ "shot_list": {
+  "json": "/Users/ana/ejemplos/pdf_shots.json",
+  "csv": "/Users/ana/ejemplos/pdf_shots.csv"
+ },
+ "panels": [
+  {
+   "n": 1,
+   "number": "3.1",
+   "page": 1,
+   "frame": 20,
+   "time_s": 0.667,
+   "timecode": "0:00:00.7",
+   "pct": 3.3,
+   "sharpness": 2928.9,
+   "sharpness_pct": 90,
+   "notes": {
+    "shot": "PG",
+    "action": "Amanece."
+   }
+  },
+  {
+   "n": 2,
+   "number": "3.2",
+   "page": 1,
+   "frame": 109,
+   "time_s": 3.633,
+   "timecode": "0:00:03.6",
+   "pct": 18.2,
+   "sharpness": 2923.3,
+   "sharpness_pct": 90,
+   "notes": {
+    "shot": "PM",
+    "camera": "Paneo"
+   }
+  },
+  {
+   "n": 3,
+   "number": "3.3",
+   "page": 1,
+   "frame": 169,
+   "time_s": 5.633,
+   "timecode": "0:00:05.6",
+   "pct": 28.2,
+   "sharpness": 2940.0,
+   "sharpness_pct": 90,
+   "notes": {
+    "shot": "PP",
+    "dialogue": "ANA: Llego tarde."
+   }
+  },
+  {
+   "n": 4,
+   "number": "3.4",
+   "page": 1,
+   "frame": 289,
+   "time_s": 9.633,
+   "timecode": "0:00:09.6",
+   "pct": 48.2,
+   "sharpness": 2907.9,
+   "sharpness_pct": 89
+  },
+  {
+   "n": 5,
+   "number": "3.5",
+   "page": 1,
+   "frame": 352,
+   "time_s": 11.733,
+   "timecode": "0:00:11.7",
+   "pct": 58.8,
+   "sharpness": 2879.6,
+   "sharpness_pct": 88
+  },
+  {
+   "n": 6,
+   "number": "3.6",
+   "page": 1,
+   "frame": 417,
+   "time_s": 13.9,
+   "timecode": "0:00:13.9",
+   "pct": 69.6,
+   "sharpness": 2948.7,
+   "sharpness_pct": 91
+  },
+  {
+   "n": 7,
+   "number": "3.7",
+   "page": 2,
+   "frame": 520,
+   "time_s": 17.333,
+   "timecode": "0:00:17.3",
+   "pct": 86.8,
+   "sharpness": 3229.5,
+   "sharpness_pct": 99
+  },
+  {
+   "n": 8,
+   "number": "3.8",
+   "page": 2,
+   "frame": 599,
+   "time_s": 19.967,
+   "timecode": "0:00:20.0",
+   "pct": 100.0,
+   "sharpness": 3254.5,
+   "sharpness_pct": 100,
+   "anchor": "last_frame"
+  }
+ ],
+ "dropped": [],
+ "selection": {
+  "mode": "sharpest",
+  "range_s": [
+   0.0,
+   19.97
+  ],
+  "range_pct": [
+   0.0,
+   100.0
+  ],
+  "measured": 600,
+  "threshold": 0.0,
+  "sharpness_stats": {
+   "min": 125.5,
+   "p25": 149.2,
+   "median": 2797.1,
+   "p75": 2897.5,
+   "max": 3254.5
+  }
+ },
+ "layout": {
+  "template": "storyboard",
+  "columns": 3,
+  "rows_per_page": 2,
+  "picture_size": [
+   484,
+   272
+  ],
+  "page": "A4",
+  "page_size": [
+   1754,
+   1240
+  ],
+  "theme": "light"
+ },
+ "input": {
+  "kind": "video",
+  "video": {
+   "path": "/Users/ana/ejemplos/ciudad.mp4",
+   "duration_s": 20.0,
+   "fps": 30.0,
+   "frames": 600,
+   "size": [
+    640,
+    360
+   ],
+   "rotation_deg": 0,
+   "displayed_size": [
+    640,
+    360
+   ],
+   "codec": "mpeg4"
+  }
+ },
+ "warnings": []
+}
